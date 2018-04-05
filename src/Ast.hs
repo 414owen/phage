@@ -7,7 +7,7 @@ newtype Ast = Ast [AstNode]
     deriving (Show)
 
 data AstNode =
-      Number Integer
+    | Number Integer
     | Atom String
     | List [AstNode]
     | Bool Bool

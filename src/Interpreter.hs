@@ -6,8 +6,8 @@ import Ast
 import Symtab
 import Control.Monad
 
-run :: SymTab -> AstNode -> IO (SymTab)
-run s n = return (mempty)
+eval :: SymTab -> AstNode -> IO (AstNode, SymTab)
+eval s n = return (Nil, mempty)
 
-interpret :: Ast -> IO (SymTab)
-interpret (Ast nodes) = foldM run mempty nodes
+interpret :: Ast -> IO (AstNode, SymTab)
+interpret (Ast nodes) = foldM (eval . snd) (Nil, mempty) nodes
