@@ -1,6 +1,7 @@
 module Main where
 
 import Parser
+import Interpreter
 import Text.Megaparsec
 import System.Environment
 
@@ -11,4 +12,11 @@ source _ = ("stdin",) <$> getContents
 main :: IO ()
 main = getArgs >>=
     source >>=
-    \(s, i) -> parseTest parseAst i
+    \(s, i) -> case parse parseAst s i of
+        Left  err ->
+               putStrLn "Parse error:"
+            >> print err
+        Right ast ->
+               print ast
+            >> interpret ast
+            >> return ()

@@ -34,13 +34,6 @@ atom = Atom <$> (lexeme $
     where
     restChar a = isPrint a && not (isSpace a) && not (a `elem` "()")
 
-{- atom :: Parser AstNode -}
-{- atom = lexeme $ -}
-{-     fmap Atom <$> fmap (:) (letterChar <|> symbolChar) <*> -}
-{-         many (brac <*> (alphaNumChar <|> symbolChar)) -}
-{-         where -}
-{-             brac = (oneOf "()") -}
-
 number :: Parser AstNode
 number = Number <$> lexeme L.decimal
 
@@ -51,4 +44,4 @@ list :: Parser AstNode
 list = parens $ List <$> many val
 
 parseAst :: Parser Ast
-parseAst = Ast <$> many list
+parseAst = Ast <$> many list <* eof
