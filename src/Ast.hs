@@ -6,9 +6,8 @@ module Ast
 newtype Ast = Ast [AstNode]
     deriving (Show)
 
-data AstNode =
-    | Number Integer
-    | Atom String
-    | List [AstNode]
-    | Bool Bool
+data AstNode
+    = ANum Integer
+    | AAtom String
+    | AList [AstNode]
     deriving (Show)

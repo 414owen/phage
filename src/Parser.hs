@@ -28,20 +28,20 @@ parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
 atom :: Parser AstNode
-atom = Atom <$> (lexeme $
+atom = AAtom <$> (lexeme $
     ((:) <$> (letterChar <|> symbolChar) <*>
     many (satisfy restChar)))
     where
     restChar a = isPrint a && not (isSpace a) && not (a `elem` "()")
 
 number :: Parser AstNode
-number = Number <$> lexeme L.decimal
+number = ANum <$> lexeme L.decimal
 
 val :: Parser AstNode
 val = list <|> atom <|> number
 
 list :: Parser AstNode
-list = parens $ List <$> many val
+list = parens $ AList <$> many val
 
 parseAst :: Parser Ast
 parseAst = Ast <$> many list <* eof

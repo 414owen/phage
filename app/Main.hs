@@ -19,4 +19,5 @@ main = getArgs >>=
         Right ast ->
                print ast
             >> interpret ast
+            >>= print
             >> return ()
