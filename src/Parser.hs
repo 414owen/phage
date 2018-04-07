@@ -10,6 +10,12 @@ import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import Text.Megaparsec.Expr
 
+syms :: String
+syms = "!#$%&*+./<=>?@\\^|-~"
+
+sym :: Parser Char
+sym = oneOf syms <?> "symbol"
+
 type Parser = Parsec Void String
 
 sc :: Parser ()
@@ -29,10 +35,10 @@ parens = between (symbol "(") (symbol ")")
 
 atom :: Parser AstNode
 atom = AAtom <$> (lexeme $
-    ((:) <$> (letterChar <|> symbolChar) <*>
-    many (satisfy restChar)))
+    ((:) <$> (lowerChar <|> sym) <*>
+    many (restChar)))
     where
-    restChar a = isPrint a && not (isSpace a) && not (a `elem` "()")
+    restChar = lowerChar <|> upperChar <|> sym <|> digitChar
 
 number :: Parser AstNode
 number = ANum <$> lexeme L.decimal

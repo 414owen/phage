@@ -11,7 +11,7 @@ import Data.Map
 lkp :: SymTab -> String -> IO (PhageVal)
 lkp tab str = case Data.Map.lookup str tab of
     Just v -> return v
-    _      -> fail ("Variable " ++ str ++ " not defined")
+    _      -> fail ("Variable '" ++ str ++ "' not defined")
 
 reduceFunc :: [PhageVal] -> PhageVal
 reduceFunc (PFunc arity params env fn:lst) = Prelude.foldl
