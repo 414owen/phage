@@ -50,4 +50,4 @@ list :: Parser AstNode
 list = parens $ AList <$> many val
 
 parseAst :: Parser Ast
-parseAst = Ast <$> many list <* eof
+parseAst = Ast <$> many val <* eof
