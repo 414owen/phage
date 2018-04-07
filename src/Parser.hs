@@ -38,7 +38,7 @@ number :: Parser AstNode
 number = ANum <$> lexeme L.decimal
 
 val :: Parser AstNode
-val = list <|> atom <|> number
+val = list <|> number <|> atom
 
 list :: Parser AstNode
 list = parens $ AList <$> many val

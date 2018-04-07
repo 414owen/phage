@@ -3,7 +3,7 @@ module Interpreter
     ) where
 
 import Ast
-import Symtab
+import Phagelude
 import Val
 import Control.Monad
 import Data.Map
@@ -13,17 +13,25 @@ lkp tab str = case Data.Map.lookup str tab of
     Just v -> return v
     _      -> fail ("Variable " ++ str ++ " not defined")
 
-reduceFunc :: [(PhageVal, SymTab)] -> (PhageVal, SymTab)
-reduceFunc ((fn, tab):lst) = (,tab) $ Prelude.foldl
-    (\(PFunc arity params fn) (val, tab) ->
-        PFunc (arity - 1) (val : params) fn) fn lst
+reduceFunc :: [PhageVal] -> PhageVal
+reduceFunc (PFunc arity params env fn:lst) = Prelude.foldl
+    (\(PFunc a p e f) param ->
+        PFunc (a - 1) (param : p ) e f) (PFunc arity params env fn) lst
+reduceFunc e = error $ "Tried to call a non-function:\n" ++ show e
+
+-- in a block, symtab updates carry through the scope they are defined in
+block :: SymTab -> [AstNode] -> IO [PhageVal]
+block tab (n:[]) = fmap (pure . fst) $ eval tab n
+block tab (n:ns) = eval tab n >>= \(v, t) -> fmap (v:) $ block t ns
 
 eval :: SymTab -> AstNode -> IO (PhageVal, SymTab)
 eval tab (ANum a) = return (PNum a, tab)
 eval tab (AAtom str) = lkp tab str >>= return . (,tab)
 eval tab (AList [])  = return (PNil, tab)
-eval tab (AList lst) = ((forM lst (eval tab)) :: IO [(PhageVal, SymTab)])
-    >>= \lst -> return $ reduceFunc lst
+eval tab (AList lst) = block tab lst
+    >>= \lst -> case reduceFunc lst of
+        PFunc 0 p e f -> f p e
+        a -> return (a, tab)
 
 interpret :: Ast -> IO (PhageVal)
-interpret (Ast nodes) = fmap fst $ foldM (eval . snd) (PNil, base) nodes
+interpret (Ast nodes) = fmap fst $ foldM (eval . snd) (PNil, phagelude) nodes
