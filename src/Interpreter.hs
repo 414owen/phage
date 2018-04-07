@@ -30,7 +30,7 @@ eval tab (AAtom str) = lkp tab str >>= return . (,tab)
 eval tab (AList [])  = return (PNil, tab)
 eval tab (AList lst) = block tab lst
     >>= \lst -> case reduceFunc lst of
-        PFunc 0 p e f -> f p e
+        PFunc 0 p e f -> f (reverse p) e
         a -> return (a, tab)
 
 interpret :: Ast -> IO (PhageVal)
