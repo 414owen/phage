@@ -9,6 +9,8 @@ numFunc :: (String, (Integer -> Integer -> Integer)) -> (String, PhageVal)
 numFunc (s, f) = (s, PFunc 2 [] mempty app)
     where
         app ((PNum a) : (PNum b) : lst) tab = return $ (PNum $ f a b, tab)
+        app (a : b : xs) _ = error $ "Wrong parameter types to function '"
+            ++ s ++ "': " ++ "'" ++ show a ++ "', '" ++ show b ++ "'"
 
 mathFuncs :: [(String, PhageVal)]
 mathFuncs = 
