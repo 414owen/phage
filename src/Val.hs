@@ -8,16 +8,12 @@ import Ast
 import Data.Map
 import Data.List
 
-data PhageVal =
-
-    -- empty list from ast
-      PNil
+data PhageVal
+    = PNil
     | PNum Integer
     | PAtom String
     | PList [PhageVal]
     | PBool Bool
-
-    -- functions can update the symbol table by one element
     | PFunc Int [PhageVal]
         SymTab
         ([PhageVal]
