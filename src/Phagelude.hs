@@ -25,7 +25,13 @@ mathFuncs =
         ]
 
 allFuncs :: [(String, PhageVal)]
-allFuncs = mathFuncs
+allFuncs = concat
+    [ mathFuncs
+    , [("print", PFunc 1 [] mempty prnt)]
+    ]
+        where
+        prnt []  t = putStrLn "" >>= const (return (PNil, t))
+        prnt lst t = mapM print lst >>= const (return (last lst, t))
 
 phagelude :: Map String PhageVal
 phagelude = Prelude.foldl (\m (k, v) -> insert k v m) mempty allFuncs
