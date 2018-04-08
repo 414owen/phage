@@ -9,16 +9,33 @@ $ stack exec phage   # gives a repl
 
 ## Implemented
 
-* Addition
+* Arithmetic
+* Function Application
+* REPL
 
 ## TODO
 
-* Everything else
+* Function definition
+* Do blocks
 
-## Example Usage
+## Using the REPL
 
-```bash
-$ stack exec phage <<< "(+ 1 2)"
-Ast [AList [AAtom "+",ANum 1,ANum 2]]
-PNum 3
+```
+$ stack exec phage
+The Phage Programming Language REPL
+0.1 pre-alpha
+λ: 42
+>> 42
+λ: (+ 3 5)
+>> 8
+λ: (min 5 6)
+>> 5
+λ: (/ 8 3)
+>> 2
+λ: (% 8 3)
+>> 2
+λ: (+ 3)
+>> <func | arity: 1, bound params: [3]>
+λ: ((+ 3) 5)
+>> 8
 ```

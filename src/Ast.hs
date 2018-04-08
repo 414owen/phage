@@ -1,4 +1,4 @@
-module Ast 
+module Ast
     ( Ast(..)
     , AstNode(..)
     ) where

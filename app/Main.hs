@@ -1,5 +1,6 @@
 module Main where
 
+import Ast
 import Parser
 import Interpreter
 import Data.List
@@ -18,25 +19,37 @@ display s i = case parse parseAst s i of
     Left  err ->
            putStrLn "Parse error:"
         >> print err
-    Right ast ->
-           print ast
-        >> interpret ast
-        >>= print
+    Right ast -> case ast of
+        (Ast []) -> return ()
+        (Ast [node]) ->
+                putStr ">> "
+            >>  interpret ast
+            >>= print
+        _ ->
+                putStrLn "The REPL only supports one expression at a time"
+            >>  putStrLn ("Maybe you meant: '(" ++ i ++ ")'")
+            >>  return ()
 
-repl :: Bool -> IO ()
-repl unicode =
-        putStr ((if unicode then '\x03BB' else '>') : " ")
-    >>  hFlush stdout
-    >>  getLine
-    >>= display "stdin"
-    >>  repl unicode
+info = "The Phage Programming Language REPL\n0.1 pre-alpha"
+
+repl :: IO ()
+repl
+    =   putStrLn info
+    >>  mapM lookupEnv ["LANG", "LC_ALL", "LC_CTYPE"]
+    >>= return . any (isInfixOf "UTF" . map toUpper) . catMaybes
+    >>= rec
+    where
+        rec :: Bool -> IO ()
+        rec unicode
+            =   putStr ((if unicode then "\x03BB:" else ">") ++ " ")
+            >>  hFlush stdout
+            >>  getLine
+            >>= display "stdin"
+            >>  rec unicode
 
 main :: IO ()
-main =
-    mapM lookupEnv ["LANG", "LC_ALL", "LC_CTYPE"]
-    >>= return . any (isInfixOf "UTF" . map toUpper) . catMaybes
-    >>= \unicode -> getArgs
+main = getArgs
     >>= \args ->
         case args of
             (a : b : xs) -> readFile b >>= display b
-            _ -> repl unicode
+            _ -> repl
