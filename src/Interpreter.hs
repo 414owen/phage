@@ -14,10 +14,12 @@ lkp tab str = case Data.Map.lookup str tab of
     _      -> fail ("Variable '" ++ str ++ "' not defined")
 
 reduceFunc :: [PhageVal] -> PhageVal
-reduceFunc (PFunc arity params env fn:lst) = Prelude.foldl
-    (\(PFunc a p e f) param ->
-        PFunc (a - 1) (param : p ) e f) (PFunc arity params env fn) lst
-reduceFunc e = error $ "Tried to call a non-function:\n" ++ show e
+reduceFunc (PFunc 0 params env fn : [])
+    = PFunc 0 params env fn
+reduceFunc (PFunc arity params env fn : [])
+    = PFunc arity params env fn
+reduceFunc (PFunc arity params env fn : v : xs)
+    = reduceFunc $ (PFunc (arity - 1) (v : params) env fn : xs)
 
 -- in a block, symtab updates carry through the scope they are defined in
 block :: SymTab -> [AstNode] -> IO [PhageVal]
