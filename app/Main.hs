@@ -9,6 +9,8 @@ import Data.Maybe
 import Text.Megaparsec
 import System.Environment
 import System.IO
+import Data.Monoid
+import Control.Monad.Trans.Except
 
 source :: [String] -> IO (String, String)
 source (_:file:_) = (file,) <$> readFile file
@@ -16,15 +18,17 @@ source _ = ("stdin",) <$> getContents
 
 display :: String -> String -> IO ()
 display s i = case parse parseAst s i of
-    Left  err ->
+    Left err ->
            putStrLn "Parse error:"
         >> print err
     Right ast -> case ast of
         (Ast []) -> return ()
         (Ast [node]) ->
-                putStr ">> "
-            >>  interpret ast
-            >>= print
+            runExceptT (interpret ast)
+            >>= \res ->
+                case res of
+                    Right val -> putStr ">> " >> print val
+                    Left err -> putStrLn ("Phage Error:\n" <> err)
         _ ->
                 putStrLn "The REPL only supports one expression at a time"
             >>  putStrLn ("Maybe you meant: '(" ++ i ++ ")'")

@@ -1,12 +1,15 @@
 module Val
     ( PhageVal(..)
-    , SymTab
+    , typeName
     ) where
 
+import Err
+import SymTab
 import Text.Show.Functions
 import Ast
 import Data.Map
 import Data.List
+import Control.Monad.Trans.Except
 
 data PhageVal
     = PNil
@@ -15,10 +18,10 @@ data PhageVal
     | PList [PhageVal]
     | PBool Bool
     | PFunc Int [PhageVal]
-        SymTab
+        (SymTab PhageVal)
         ([PhageVal]
-        -> SymTab
-        -> IO (PhageVal, SymTab))
+        -> (SymTab PhageVal)
+        -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal))
 
 spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = concat $ intersperse space (fmap show els)
@@ -28,8 +31,15 @@ instance Show PhageVal where
     show (PNum a) = show a
     show (PAtom a) = a
     show (PBool True) = "true"
+    show (PBool False) = "false"
     show (PList els) = "(" ++ spacedShow " " els ++ ")"
-    show (PFunc a p s fn) = "<func | arity: " ++ show a ++ ", bound params: [" ++
-        spacedShow ", " p ++ "]>"
+    show (PFunc a p s fn) = "<func | arity: " ++ show a ++
+        ", bound params: [" ++ spacedShow ", " p ++ "]>"
 
-type SymTab = Map String PhageVal
+typeName :: PhageVal -> String
+typeName PNil = "nil"
+typeName (PNum _) = "num"
+typeName (PAtom _) = "atom"
+typeName (PList _) = "list"
+typeName (PBool _) = "bool"
+typeName (PFunc _ _ _ _) = "func"
