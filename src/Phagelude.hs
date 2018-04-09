@@ -9,7 +9,7 @@ import Data.Map
 import Data.Maybe
 import Control.Monad.Trans.Except
 
-typeMess :: Integer -> String -> PhageVal -> String
+typeMess :: Integer -> String -> PhageVal -> PhageErr
 typeMess n exp val = "Parameter " ++ show n ++ " has the wrong type,\
     \ expecting '" ++ exp ++ "' but got '" ++ typeName val ++ "'"
 
@@ -24,10 +24,10 @@ createBinFunc (fromA, aStr) (fromB, bStr) toC fn = PFunc 2 [] mempty nf
     where
         nf :: [PhageVal] -> SymTab PhageVal -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
         nf [a, b] tab = case (fromA a, fromB b) of
-            (Nothing, _) -> error $ typeMess 1 aStr a
-            (_, Nothing) -> error $ typeMess 2 bStr b
+            (Nothing, _) -> throwE $ typeMess 1 aStr a
+            (_, Nothing) -> throwE $ typeMess 2 bStr b
             (Just a, Just b) -> return (toC $ fn a b, tab)
-        nf _ _  = error "Too many parameters applied to binary function"
+        nf _ _  = throwE "Too many parameters applied to binary function"
 
 fromNum :: (PhageVal -> Maybe Integer)
 fromNum (PNum a) = Just a

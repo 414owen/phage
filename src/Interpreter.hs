@@ -13,7 +13,7 @@ import Data.Map
 
 lkp :: SymTab PhageVal -> String -> Either PhageErr PhageVal
 lkp tab str = case Data.Map.lookup str tab of
-    Just v -> return v
+    Just v -> Right v
     _      -> Left ("Variable '" ++ str ++ "' not defined")
 
 reduceFunc :: [PhageVal] -> PhageVal
@@ -31,7 +31,7 @@ block tab (n:ns) = eval tab n >>= \(v, t) -> fmap (v:) $ block t ns
 
 eval :: SymTab PhageVal -> AstNode -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
 eval tab (ANum a) = return (PNum a, tab)
-eval tab (AAtom str) = ExceptT (return (lkp tab str)) >>= return . (,tab)
+eval tab (AAtom str) = fmap (,tab) $ ExceptT (return (lkp tab str))
 eval tab (AList [])  = return (PNil, tab)
 eval tab (AList lst) = block tab lst
     >>= \lst -> case reduceFunc lst of
