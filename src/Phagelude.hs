@@ -6,6 +6,7 @@ import Ast
 import Err
 import Val
 import SymTab
+import Safe
 import Interpreter
 import Data.Map
 import Data.Maybe
@@ -101,14 +102,14 @@ specials =
         param thing = throwE $ "Invalid parameter name: " <> show thing
 
         funcFunc :: PhageForm
-        funcFunc (AList atoms : block : []) tab = mapM param atoms
+        funcFunc (AList atoms : blk) tab = mapM param atoms
             >>= \strs-> ExceptT $ return $ Right
                 (PFunc (length strs) [] tab (runFunc strs), tab)
                 where
                     runFunc :: [String] -> PhageFunc
                     runFunc strs params oldtab =
                         let tab = newTab (zip strs params) oldtab in
-                            eval tab block
+                            fmap ((, tab) . lastDef (PList [])) $ block tab blk
 
         condFunc :: PhageForm
         condFunc [] tab = ExceptT $ return $ Left "Condition not met"

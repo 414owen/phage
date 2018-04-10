@@ -1,6 +1,7 @@
 module Interpreter
     ( interpret
     , eval
+    , block
     ) where
 
 import Err
