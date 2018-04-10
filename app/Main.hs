@@ -3,6 +3,7 @@ module Main where
 import Ast
 import Parser
 import Interpreter
+import Phagelude
 import Data.List
 import Data.Char
 import Data.Maybe
@@ -24,11 +25,10 @@ display s i = case parse parseAst s i of
     Right ast -> case ast of
         (Ast []) -> return ()
         (Ast [node]) ->
-            runExceptT (interpret ast)
-            >>= \res ->
-                case res of
-                    Right val -> putStr ">> " >> print val
-                    Left err -> putStrLn ("Phage Error:\n" <> err)
+            runExceptT (interpret phagelude ast)
+            >>= \res -> case res of
+                Right val -> putStr ">> " >> print val
+                Left err -> putStrLn ("Phage Error:\n" <> err)
         _ ->
                 putStrLn "The REPL only supports one expression at a time"
             >>  putStrLn ("Maybe you meant: '(" ++ i ++ ")'")
@@ -52,8 +52,7 @@ repl
             >>  rec unicode
 
 main :: IO ()
-main = getArgs
-    >>= \args ->
-        case args of
-            (a : b : xs) -> readFile b >>= display b
-            _ -> repl
+main = getArgs >>= \args ->
+    case args of
+        (a : b : xs) -> readFile b >>= display b
+        _ -> repl

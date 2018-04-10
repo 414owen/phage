@@ -1,6 +1,8 @@
 module Val
     ( PhageVal(..)
     , typeName
+    , PhageFunc
+    , PhageForm
     ) where
 
 import Err
@@ -11,23 +13,28 @@ import Data.Map
 import Data.List
 import Control.Monad.Trans.Except
 
+type PhageFunc =
+            [PhageVal]
+        ->  (SymTab PhageVal)
+        ->  ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+
+type PhageForm =
+            [AstNode]
+        ->  (SymTab PhageVal)
+        ->  ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+
 data PhageVal
-    = PNil
-    | PNum Integer
+    = PNum Integer
     | PAtom String
     | PList [PhageVal]
     | PBool Bool
-    | PFunc Int [PhageVal]
-        (SymTab PhageVal)
-        ([PhageVal]
-        -> (SymTab PhageVal)
-        -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal))
+    | PFunc Int [PhageVal] (SymTab PhageVal) PhageFunc
+    | PForm Int (SymTab PhageVal) PhageForm
 
 spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = concat $ intersperse space (fmap show els)
 
 instance Show PhageVal where
-    show (PNil) = "()"
     show (PNum a) = show a
     show (PAtom a) = a
     show (PBool True) = "true"
@@ -37,9 +44,9 @@ instance Show PhageVal where
         ", bound params: [" ++ spacedShow ", " p ++ "]>"
 
 typeName :: PhageVal -> String
-typeName PNil = "nil"
-typeName (PNum _) = "num"
-typeName (PAtom _) = "atom"
-typeName (PList _) = "list"
-typeName (PBool _) = "bool"
+typeName (PNum _)        = "num"
+typeName (PAtom _)       = "atom"
+typeName (PList [])      = "nil"
+typeName (PList _)       = "list"
+typeName (PBool _)       = "bool"
 typeName (PFunc _ _ _ _) = "func"

@@ -5,13 +5,18 @@ module Phagelude
 import Err
 import Val
 import SymTab
+import Interpreter
 import Data.Map
 import Data.Maybe
+import Data.Monoid
 import Control.Monad.Trans.Except
 
 typeMess :: Integer -> String -> PhageVal -> PhageErr
 typeMess n exp val = "Parameter " ++ show n ++ " has the wrong type,\
     \ expecting '" ++ exp ++ "' but got '" ++ typeName val ++ "'"
+
+arityMess :: Int -> Int -> PhageErr
+arityMess a b = show a <> " arguments applied to function of arity " <> show b
 
 -- create a binary function over phage values
 createBinFunc ::
@@ -20,14 +25,14 @@ createBinFunc ::
     -> (c -> PhageVal)
     -> (a -> b -> c)
     -> (PhageVal)
-createBinFunc (fromA, aStr) (fromB, bStr) toC fn = PFunc 2 [] mempty nf
+createBinFunc (fromA, aStr) (fromB, bStr) toC fn = mkFunc 2 nf
     where
-        nf :: [PhageVal] -> SymTab PhageVal -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+        nf :: PhageFunc
         nf [a, b] tab = case (fromA a, fromB b) of
             (Nothing, _) -> throwE $ typeMess 1 aStr a
             (_, Nothing) -> throwE $ typeMess 2 bStr b
             (Just a, Just b) -> return (toC $ fn a b, tab)
-        nf _ _  = throwE "Too many parameters applied to binary function"
+        nf l _ = throwE $ arityMess 2 (length l)
 
 fromNum :: (PhageVal -> Maybe Integer)
 fromNum (PNum a) = Just a
@@ -39,6 +44,19 @@ mapSnd :: (a -> b) -> (c, a) -> (c, b)
 mapSnd fn (a, b) = (a, fn b)
 
 createOnTwoInts = createBinFunc fromNumTup fromNumTup
+
+mkFunc :: Int -> PhageFunc -> PhageVal
+mkFunc arity = PFunc arity [] mempty
+
+mkForm :: Int -> PhageForm -> PhageVal
+mkForm arity = PForm arity mempty
+
+truthy :: PhageVal -> Bool
+truthy (PList []) = False
+truthy (PBool a) = a
+truthy (PNum 0) = False
+truthy (PAtom "") = False
+truthy _ = True
 
 arith :: [(String, PhageVal)]
 arith =
@@ -69,23 +87,31 @@ consts =
     , ("false", PBool False)
     ]
 
+specials :: [(String, PhageVal)]
+specials =
+    [ ("if", mkForm 3 ifFunc)
+    ] where
+        ifFunc :: PhageForm
+        ifFunc [a, b, c] tab
+            =   eval tab a
+            >>= \(pred, t) -> if truthy pred then eval tab b else eval tab c
+        ifFunc l _ = throwE $ arityMess 3 (length l)
+
+
 allVals :: [(String, PhageVal)]
 allVals = concat
     [ arith
     , comparison
     , consts
-    , [("print", PFunc 1 [] mempty prnt)]
-    ]
-        where
-        prnt :: [PhageVal]
-            -> SymTab PhageVal
-            -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
-        prnt []  t = ret (putStrLn "") (PNil, t)
+    , specials
+    , [("print", mkFunc 1 prnt)]
+    ] where
+        prnt :: PhageFunc
+        prnt []  t = ret (putStrLn "") (PList [], t)
         prnt lst t = ret (mapM print lst) (last lst, t)
 
         ret :: IO a -> b -> ExceptT PhageErr IO b
         ret a b = ExceptT $ fmap (const (Right b)) $ a
-
 
 phagelude :: Map String PhageVal
 phagelude = Prelude.foldl (\m (k, v) -> insert k v m) mempty allVals
