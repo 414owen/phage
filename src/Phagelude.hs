@@ -49,7 +49,7 @@ mkFunc :: Int -> PhageFunc -> PhageVal
 mkFunc arity = PFunc arity [] mempty
 
 mkForm :: Int -> PhageForm -> PhageVal
-mkForm arity = PForm arity mempty
+mkForm arity = PForm arity
 
 truthy :: PhageVal -> Bool
 truthy (PList []) = False
@@ -96,7 +96,6 @@ specials =
             =   eval tab a
             >>= \(pred, t) -> if truthy pred then eval tab b else eval tab c
         ifFunc l _ = throwE $ arityMess 3 (length l)
-
 
 allVals :: [(String, PhageVal)]
 allVals = concat

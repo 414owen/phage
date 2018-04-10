@@ -7,6 +7,7 @@ import Err
 import Ast
 import Val
 import SymTab
+import Data.Monoid
 import Control.Monad
 import Control.Monad.Trans.Except
 import Data.Map
@@ -14,7 +15,7 @@ import Data.Map
 lkp :: SymTab PhageVal -> String -> Either PhageErr PhageVal
 lkp tab str = case Data.Map.lookup str tab of
     Just v -> Right v
-    _      -> Left ("Variable '" ++ str ++ "' not defined")
+    _      -> Left ("Variable '" <> str <> "' not defined")
 
 reduceFunc :: PhageVal -> [PhageVal] -> PhageVal
 reduceFunc (PFunc 0 params env fn) [] = PFunc 0 params env fn
@@ -38,8 +39,8 @@ eval tab (AList (fn : params)) = eval tab fn
             >>= \(ps) -> case reduceFunc fn ps of
                 PFunc a p e f | a <= 0 -> f (reverse p) e
                 a -> return (a, tab)
-        (PForm a t f) | a <= length params -> f params t
-        (PForm a t f) -> ExceptT $ return $ Left "Not enough params to form"
+        (PForm a f) | a <= length params -> f params tab
+        (PForm a f) -> ExceptT $ return $ Left "Not enough params to form"
 
 interpret :: SymTab PhageVal -> Ast -> ExceptT PhageErr IO PhageVal
 interpret prelude (Ast nodes) = fmap fst $ foldM (eval . snd) (PList [], prelude) nodes

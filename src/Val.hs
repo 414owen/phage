@@ -29,7 +29,7 @@ data PhageVal
     | PList [PhageVal]
     | PBool Bool
     | PFunc Int [PhageVal] (SymTab PhageVal) PhageFunc
-    | PForm Int (SymTab PhageVal) PhageForm
+    | PForm Int PhageForm
 
 spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = concat $ intersperse space (fmap show els)
@@ -40,6 +40,7 @@ instance Show PhageVal where
     show (PBool True) = "true"
     show (PBool False) = "false"
     show (PList els) = "(" ++ spacedShow " " els ++ ")"
+    show (PForm _ _) = "<form>"
     show (PFunc a p s fn) = "<func | arity: " ++ show a ++
         ", bound params: [" ++ spacedShow ", " p ++ "]>"
 
@@ -50,3 +51,4 @@ typeName (PList [])      = "nil"
 typeName (PList _)       = "list"
 typeName (PBool _)       = "bool"
 typeName (PFunc _ _ _ _) = "func"
+typeName (PForm _ _) = "form"
