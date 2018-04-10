@@ -21,7 +21,7 @@ type Parser = Parsec Void String
 sc :: Parser ()
 sc = L.space space1 lineCmnt blockCmnt
   where
-    lineCmnt  = L.skipLineComment "// "
+    lineCmnt  = L.skipLineComment "//"
     blockCmnt = L.skipBlockCommentNested "/*" "*/"
 
 symbol :: String -> Parser String
@@ -36,7 +36,7 @@ parens = between (symbol "(") (symbol ")")
 atom :: Parser AstNode
 atom = AAtom <$> (lexeme $
     ((:) <$> (lowerChar <|> sym) <*>
-    many (restChar)))
+    many restChar))
     where
     restChar = lowerChar <|> upperChar <|> sym <|> digitChar
 
@@ -50,4 +50,4 @@ list :: Parser AstNode
 list = parens $ AList <$> many val
 
 parseAst :: Parser Ast
-parseAst = Ast <$> many val <* eof
+parseAst = Ast <$> (sc >> many val) <* eof
