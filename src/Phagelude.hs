@@ -2,6 +2,7 @@ module Phagelude
     ( phagelude
     ) where
 
+import Ast
 import Err
 import Val
 import SymTab
@@ -10,6 +11,9 @@ import Data.Map
 import Data.Maybe
 import Data.Monoid
 import Control.Monad.Trans.Except
+
+newTab :: [(String, PhageVal)] -> SymTab PhageVal -> SymTab PhageVal
+newTab vs tab = Prelude.foldl (\m (k, v) -> insert k v m) tab vs
 
 typeMess :: Integer -> String -> PhageVal -> PhageErr
 typeMess n exp val = "Parameter " ++ show n ++ " has the wrong type,\
@@ -90,11 +94,34 @@ consts =
 specials :: [(String, PhageVal)]
 specials =
     [ ("if", mkForm 3 ifFunc)
+    , ("cond", mkForm 0 condFunc)
+    , ("\\", mkForm 2 funcFunc)
     ] where
+        param (AAtom str) = ExceptT $ return $ Right str
+        param thing = throwE $ "Invalid parameter name: " <> show thing
+
+        funcFunc :: PhageForm
+        funcFunc (AList atoms : block : []) tab = mapM param atoms
+            >>= \strs-> ExceptT $ return $ Right
+                (PFunc (length strs) [] tab (runFunc strs), tab)
+                where
+                    runFunc :: [String] -> PhageFunc
+                    runFunc strs params oldtab =
+                        let tab = newTab (zip strs params) oldtab in
+                            eval tab block
+
+        condFunc :: PhageForm
+        condFunc [] tab = ExceptT $ return $ Left "Condition not met"
+        condFunc (AList (pred : val : []) : nodes) tab = eval tab pred
+            >>= \(pred, t) -> if truthy pred
+                then eval tab val
+                else condFunc nodes tab
+        condFunc _ _ = throwE $ "Unrecognized form in call to <cond>"
+
         ifFunc :: PhageForm
         ifFunc [a, b, c] tab
             =   eval tab a
-            >>= \(pred, t) -> if truthy pred then eval tab b else eval tab c
+            >>= \(pred, t) -> eval tab $ if truthy pred then b else c
         ifFunc l _ = throwE $ arityMess 3 (length l)
 
 allVals :: [(String, PhageVal)]
@@ -113,4 +140,4 @@ allVals = concat
         ret a b = ExceptT $ fmap (const (Right b)) $ a
 
 phagelude :: Map String PhageVal
-phagelude = Prelude.foldl (\m (k, v) -> insert k v m) mempty allVals
+phagelude = newTab allVals mempty
