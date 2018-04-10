@@ -120,10 +120,7 @@ specials =
         condFunc _ _ = throwE $ "Unrecognized form in call to <cond>"
 
         ifFunc :: PhageForm
-        ifFunc [a, b, c] tab
-            =   eval tab a
-            >>= \(pred, t) -> eval tab $ if truthy pred then b else c
-        ifFunc l _ = throwE $ arityMess 3 (length l)
+        ifFunc [a, b, c] = condFunc [AList [a, b], AList [ANum 1, c]]
 
 allVals :: [(String, PhageVal)]
 allVals = concat
