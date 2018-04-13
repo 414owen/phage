@@ -34,9 +34,7 @@ parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
 atom :: Parser AstNode
-atom = AAtom <$> (lexeme $
-    ((:) <$> (lowerChar <|> sym) <*>
-    many restChar))
+atom = AAtom <$> lexeme ((:) <$> (lowerChar <|> sym) <*> many restChar)
     where
     restChar = lowerChar <|> upperChar <|> sym <|> digitChar
 

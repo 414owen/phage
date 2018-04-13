@@ -27,22 +27,22 @@ reduceFunc (PFunc arity params env fn) (v : xs)
 -- in a block, symtab updates carry through the scope they are defined in
 block :: SymTab PhageVal -> [AstNode] -> ExceptT PhageErr IO [PhageVal]
 block tab [] = ExceptT (return $ Right [])
-block tab (n:[]) = fmap (pure . fst) $ eval tab n
-block tab (n:ns) = eval tab n >>= \(v, t) -> fmap (v:) $ block t ns
+block tab [n] = pure . fst <$> eval tab n
+block tab (n:ns) = eval tab n >>= \(v, t) -> (v:) <$> block t ns
 
 eval :: SymTab PhageVal -> AstNode -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
 eval tab (ANum a) = return (PNum a, tab)
-eval tab (AAtom str) = fmap (,tab) $ ExceptT (return (lkp tab str))
+eval tab (AAtom str) = (,tab) <$> ExceptT (return (lkp tab str))
 eval tab (AList [])  = return (PList [], tab)
 eval tab (AList (fn : params)) = eval tab fn
     >>= \(fn, ftab) -> case fn of
         (PFunc a p t f) -> block tab params
-            >>= \(ps) -> case reduceFunc fn ps of
-                PFunc a p e f | a <= 0 -> f (reverse p) e
+            >>= \ps -> case reduceFunc fn ps of
+                PFunc a p env f | a <= 0 -> (,tab) <$> f (reverse p) env
                 a -> return (a, tab)
         (PForm a f) | a <= length params -> f params tab
         (PForm a f) -> ExceptT $ return $ Left "Not enough params to form"
         _ -> ExceptT $ return $ Left "Tried to call a non-function"
 
-interpret :: SymTab PhageVal -> Ast -> ExceptT PhageErr IO PhageVal
-interpret prelude (Ast nodes) = fmap fst $ foldM (eval . snd) (PList [], prelude) nodes
+interpret :: SymTab PhageVal -> Ast -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+interpret prelude (Ast nodes) = foldM (eval . snd) (PList [], prelude) nodes

@@ -15,12 +15,12 @@ import Control.Monad.Trans.Except
 
 type PhageFunc =
             [PhageVal]
-        ->  (SymTab PhageVal)
-        ->  ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+        ->  SymTab PhageVal
+        ->  ExceptT PhageErr IO PhageVal
 
 type PhageForm =
             [AstNode]
-        ->  (SymTab PhageVal)
+        ->  SymTab PhageVal
         ->  ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
 
 data PhageVal
@@ -32,7 +32,7 @@ data PhageVal
     | PForm Int PhageForm
 
 spacedShow :: String -> [PhageVal] -> String
-spacedShow space els = concat $ intersperse space (fmap show els)
+spacedShow space els = intercalate space (show <$> els)
 
 instance Show PhageVal where
     show (PNum a) = show a
@@ -50,5 +50,5 @@ typeName (PAtom _)       = "atom"
 typeName (PList [])      = "nil"
 typeName (PList _)       = "list"
 typeName (PBool _)       = "bool"
-typeName (PFunc _ _ _ _) = "func"
-typeName (PForm _ _) = "form"
+typeName PFunc{}         = "func"
+typeName (PForm _ _)     = "form"

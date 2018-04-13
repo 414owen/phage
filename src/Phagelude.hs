@@ -25,18 +25,18 @@ arityMess a b = show a <> " arguments applied to function of arity " <> show b
 
 -- create a binary function over phage values
 createBinFunc ::
-    ((PhageVal -> Maybe a), String)
-    -> ((PhageVal -> Maybe b), String)
+    (PhageVal -> Maybe a, String)
+    -> (PhageVal -> Maybe b, String)
     -> (c -> PhageVal)
     -> (a -> b -> c)
-    -> (PhageVal)
+    -> PhageVal
 createBinFunc (fromA, aStr) (fromB, bStr) toC fn = mkFunc 2 nf
     where
         nf :: PhageFunc
         nf [a, b] tab = case (fromA a, fromB b) of
             (Nothing, _) -> throwE $ typeMess 1 aStr a
             (_, Nothing) -> throwE $ typeMess 2 bStr b
-            (Just a, Just b) -> return (toC $ fn a b, tab)
+            (Just a, Just b) -> return $ toC $ fn a b
         nf l _ = throwE $ arityMess 2 (length l)
 
 fromNum :: (PhageVal -> Maybe Integer)
@@ -52,9 +52,6 @@ createOnTwoInts = createBinFunc fromNumTup fromNumTup
 
 mkFunc :: Int -> PhageFunc -> PhageVal
 mkFunc arity = PFunc arity [] mempty
-
-mkForm :: Int -> PhageForm -> PhageVal
-mkForm arity = PForm arity
 
 truthy :: PhageVal -> Bool
 truthy (PList []) = False
@@ -92,32 +89,62 @@ consts =
     , ("false", PBool False)
     ]
 
+formErr :: String -> String
+formErr = (<>) "Unrecognized call to form "
+
 specials :: [(String, PhageVal)]
 specials =
-    [ ("if", mkForm 3 ifFunc)
-    , ("cond", mkForm 0 condFunc)
-    , ("\\", mkForm 2 funcFunc)
+    [ ("if", PForm 3 ifFunc)
+    , ("cond", PForm 0 condFunc)
+    , ("\\", PForm 2 funcFunc)
+    , ("def", PForm 2 def)
+    , ("let", PForm 1 letFunc)
+    , ("fun", PForm 2 namedFun)
     ] where
-        param (AAtom str) = ExceptT $ return $ Right str
+        ret = ExceptT . return . Right
+        err = ExceptT . return . Left
+        foer = err . formErr
+
+        param (AAtom str) = ret str
         param thing = throwE $ "Invalid parameter name: " <> show thing
+
+        runFunc :: [AstNode] -> [String] -> PhageFunc
+        runFunc blk strs params oldtab =
+            let tab = newTab (zip strs params) oldtab in
+                lastDef (PList []) <$> block tab blk
+
+        -- named functions support recursion
+        namedFun :: PhageForm
+        namedFun (AAtom name : AList strs : blk) tab = mapM param strs
+            >>= \strs ->
+                let fn = PFunc (length strs) [] (insert name fn tab) (runFunc blk strs)
+                in  ret (fn, insert name fn tab)
+
+        letFunc' :: PhageVal -> PhageForm
+        letFunc' res [] t = ret (res, t)
+        letFunc' res (AList [AAtom str, val] : others) t = eval t val
+            >>= \(val, ntab) -> letFunc' res others (insert str val t)
+        letFunc' _ a _ = foer "let"
+
+        letFunc :: PhageForm
+        letFunc = letFunc' (PList [])
+
+        def :: PhageForm
+        def [AAtom a, b] tab = letFunc [AList [AAtom a, b]] tab
+        def a _ = foer "def"
 
         funcFunc :: PhageForm
         funcFunc (AList atoms : blk) tab = mapM param atoms
-            >>= \strs-> ExceptT $ return $ Right
-                (PFunc (length strs) [] tab (runFunc strs), tab)
-                where
-                    runFunc :: [String] -> PhageFunc
-                    runFunc strs params oldtab =
-                        let tab = newTab (zip strs params) oldtab in
-                            fmap ((, tab) . lastDef (PList [])) $ block tab blk
+            >>= \strs ->
+                ret (PFunc (length strs) [] tab (runFunc blk strs), tab)
 
         condFunc :: PhageForm
         condFunc [] tab = ExceptT $ return $ Left "Condition not met"
-        condFunc (AList (pred : val : []) : nodes) tab = eval tab pred
+        condFunc (AList [pred, val] : nodes) tab = eval tab pred
             >>= \(pred, t) -> if truthy pred
                 then eval tab val
                 else condFunc nodes tab
-        condFunc _ _ = throwE $ "Unrecognized form in call to <cond>"
+        condFunc _ _ = throwE "Unrecognized form in call to <cond>"
 
         ifFunc :: PhageForm
         ifFunc [a, b, c] = condFunc [AList [a, b], AList [ANum 1, c]]
@@ -131,11 +158,11 @@ allVals = concat
     , [("print", mkFunc 1 prnt)]
     ] where
         prnt :: PhageFunc
-        prnt []  t = ret (putStrLn "") (PList [], t)
-        prnt lst t = ret (mapM print lst) (last lst, t)
+        prnt []  t = ret (putStrLn "") (PList [])
+        prnt lst t = ret (mapM print lst) (last lst)
 
         ret :: IO a -> b -> ExceptT PhageErr IO b
-        ret a b = ExceptT $ fmap (const (Right b)) $ a
+        ret a b = ExceptT $ const (Right b) <$> a
 
 phagelude :: Map String PhageVal
 phagelude = newTab allVals mempty
