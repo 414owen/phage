@@ -123,7 +123,7 @@ specials =
         letFunc' :: PhageVal -> PhageForm
         letFunc' res [] t = ret (res, t)
         letFunc' res (AList [AAtom str, val] : others) t = eval t val
-            >>= \(val, ntab) -> letFunc' res others (insert str val t)
+            >>= \(val, ntab) -> letFunc' val others (insert str val t)
         letFunc' _ a _ = foer "let"
 
         letFunc :: PhageForm

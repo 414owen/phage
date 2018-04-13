@@ -46,22 +46,43 @@ The prelude includes the following functions:
 (> 3 4)      // false
 (<= 3 3)     // true
 (>= 3 4)     // false
+
+// prints (and returns) 5
+(print 5)
 ```
 
 ...and the following special forms:
 
 ```
-// named function (supports recursion)
+// define a function
+// also returns the function literal
 (fun alt (a b) (print a) (alt b a))
 
 // anonymous function
 (\ (a b c) (+ a (+ b c)))
 
 // create a variable binding
+// returns the variable
 (def a 3)
 
 // create many variable bindings
-(let (a 3) (b 100))
+// returns nil
+(let (a 3)
+	 (b 100))
+
+// (if <cond> <then> <else>)
+// returns the result of the taken branch
+(if (< a b)
+	(* b b)
+	(* a b))
+
+// cond takes the first element of each of its parameters
+// as a condition, returning the second if it's true
+(cond
+	(false 1)
+	((> 3 4) 2)
+	((= 3 3) 3)
+	(true 4))
 ```
 
 ## Examples
