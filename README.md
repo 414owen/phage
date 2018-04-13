@@ -15,11 +15,9 @@ $ stack exec phage   # run the repl
 
 ## TODO
 
-* define
 * better prelude
 * datatypes
-* add some more data types
-* lists and list functions
+* lists
 * everything else
 
 ## Syntax
@@ -66,9 +64,13 @@ The prelude includes the following functions:
 (let (a 3) (b 100))
 ```
 
-## Example
+## Examples
 
 ```
 // factorial
 (fun fact (a) (if (<= a 0) 1 (* a (fact (- a 1)))))
+
+// currying
+(def add3 (+ 3))
+(add3 5)            // 8
 ```
