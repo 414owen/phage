@@ -4,7 +4,7 @@ import Val
 import Parser
 import Interpreter
 import SymTab
-import Phagelude
+import Core
 import Data.List
 import Data.Char
 import Data.Maybe
@@ -46,7 +46,7 @@ repl
     =   putStrLn info
     >>  mapM lookupEnv ["LANG", "LC_ALL", "LC_CTYPE"]
     >>= return . any (isInfixOf "UTF" . map toUpper) . catMaybes
-    >>= rec phagelude
+    >>= rec core
     where
         rec :: SymTab PhageVal -> Bool -> IO ()
         rec tab unicode
@@ -58,5 +58,5 @@ repl
 
 main :: IO ()
 main = getArgs >>= \args -> case args of
-        (b : xs) -> readFile b >>= run False phagelude "stdin" >> return ()
+        (b : xs) -> readFile b >>= run False core "stdin" >> return ()
         _ -> repl

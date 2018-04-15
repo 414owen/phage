@@ -28,6 +28,7 @@ data PhageVal
     | PAtom String
     | PList [PhageVal]
     | PBool Bool
+    | PStr String
     | PFunc Int [PhageVal] (SymTab PhageVal) PhageFunc
     | PForm Int PhageForm
 
@@ -35,17 +36,19 @@ spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = intercalate space (show <$> els)
 
 instance Eq PhageVal where
-    (==) (PNum a)  (PNum b)  = a == b
+    (==) (PNum  a) (PNum  b) = a == b
     (==) (PChar a) (PChar b) = a == a
     (==) (PAtom a) (PAtom b) = a == b
     (==) (PList a) (PList b) = a == b
     (==) (PBool a) (PBool b) = a == b
+    (==) (PStr  a) (PStr  b) = a == b
     (==) _         _         = False
 
 instance Show PhageVal where
     show (PNum a)         = show a
     show (PChar c)        = show c
     show (PAtom a)        = a
+    show (PStr s)         = show s
     show (PBool True)     = "true"
     show (PBool False)    = "false"
     show (PList els)      = "(" ++ spacedShow " " els ++ ")"

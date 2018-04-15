@@ -1,16 +1,24 @@
-module Phagelude
-    ( phagelude
+module Core
+    ( core
     ) where
+
+{-
+ - Core contains a small set of fucntions necessary to
+ - bootstrap a useful language, the idea being that the
+ - standard library will be written in phage, using core.
+ -}
 
 import Err
 import Val
 import SymTab
 import Safe
+import Parser
 import Interpreter
 import Data.Map
 import Data.Maybe
 import Data.Monoid
 import Control.Monad.Trans.Except
+import Text.Megaparsec
 
 newTab :: [(String, PhageVal)] -> SymTab PhageVal -> SymTab PhageVal
 newTab vs tab = Prelude.foldl (\m (k, v) -> insert k v m) tab vs
@@ -142,7 +150,18 @@ specials =
     , ("quote", (1, quoteFunc))
     , ("eval", (1, evalFunc))
     , ("do", (1, doFunc)) -- do is technically a function...
+    , ("import", (1, importFunc))
     ] where
+
+        importFunc :: PhageForm
+        importFunc [PStr fname] t =
+            ExceptT $ readFile fname >>= imp
+            where
+                imp s = case parse parseAst fname s of
+                    Left s -> return $ Left $ show s
+                    Right ast -> runExceptT $ interpret t ast
+        importFunc _ _ = formErr "import"
+
         doFunc :: PhageForm
         doFunc [] t = funcErr "do"
         doFunc n t = ((, t) . last) <$> block t n
@@ -221,5 +240,5 @@ allVals = concat
         ret :: IO a -> b -> ExceptT PhageErr IO b
         ret a b = ExceptT $ const (Right b) <$> a
 
-phagelude :: Map String PhageVal
-phagelude = newTab allVals mempty
+core :: Map String PhageVal
+core = newTab allVals mempty

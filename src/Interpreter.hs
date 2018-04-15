@@ -43,5 +43,8 @@ eval tab (PList (fn : params)) = eval tab fn
         (PForm a f) -> ExceptT $ return $ Left "Not enough params to form"
         _ -> ExceptT $ return $ Left "Tried to call a non-function"
 
-interpret :: SymTab PhageVal -> [PhageVal] -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+interpret ::
+    SymTab PhageVal
+    -> [PhageVal]
+    -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
 interpret prelude nodes = foldM (eval . snd) (PList [], prelude) nodes

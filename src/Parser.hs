@@ -11,7 +11,7 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import Text.Megaparsec.Expr
 
 syms :: String
-syms = "\"'£€_<>[]`;{}¬:!#$%&*+./<=>?@\\^|-~"
+syms = "'£€_<>[]`;{}¬:!#$%&*+./<=>?@\\^|-~"
 
 sym :: Parser Char
 sym = oneOf syms <?> "symbol"
@@ -38,11 +38,14 @@ atom = PAtom <$> lexeme ((:) <$> (lowerChar <|> sym) <*> many restChar)
     where
     restChar = lowerChar <|> upperChar <|> sym <|> digitChar
 
+phstring :: Parser PhageVal
+phstring = PStr <$> lexeme (char '"' >> manyTill L.charLiteral (char '"'))
+
 number :: Parser PhageVal
 number = PNum <$> lexeme L.decimal
 
 val :: Parser PhageVal
-val = list <|> number <|> atom
+val = list <|> phstring <|> number <|> atom
 
 list :: Parser PhageVal
 list = parens $ PList <$> many val
