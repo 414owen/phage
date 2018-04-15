@@ -31,17 +31,21 @@
 	(lrec 0 lst))
 
 (def cases (len tests))
-(print (quote cases:) cases)
 
 (fun run (t)
 	(fun runrec (a t)
 		(if (= t ())
 			a
 			(runrec
-				(+ a (if (= (eval (caar t)) (eval (cadar t))) 1 0))
+				(+ a (if (= (eval (caar t)) (eval (cadar t)))
+					1
+					(do (print (car t)) 0)
+				))
 				(cdr t))))
 	(runrec 0 t))
 
 (def passed (run tests))
+(print)
+(print (quote cases:) cases)
 (print (quote passed:) passed)
 (print (quote failed:) (- cases passed))

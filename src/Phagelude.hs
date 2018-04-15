@@ -141,7 +141,12 @@ specials =
     , ("fun", (2, namedFun))
     , ("quote", (1, quoteFunc))
     , ("eval", (1, evalFunc))
+    , ("do", (1, doFunc)) -- do is technically a function...
     ] where
+        doFunc :: PhageForm
+        doFunc [] t = funcErr "do"
+        doFunc n t = ((, t) . last) <$> block t n
+
         quoter (PList a) = PList $ quoter <$> a
         quoter a = a
 
@@ -206,10 +211,9 @@ allVals = concat
     , specials
     , lists
     , anyVal
-    , [("print", mkFunc 1 prnt)]
+    , [("print", mkFunc 0 prnt)]
     ] where
         prnt :: PhageFunc
-        prnt []  t = ret (putStrLn "") (PList [])
         prnt lst t =
             ret ((mapM (putStr . (<> " ") . show) lst) >> putStrLn "")
                 (last lst)
