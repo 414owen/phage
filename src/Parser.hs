@@ -2,7 +2,7 @@ module Parser
     ( parseAst
     ) where
 
-import Ast
+import Val
 import Data.Char
 import Data.Void
 import Text.Megaparsec
@@ -33,19 +33,19 @@ lexeme = L.lexeme sc
 parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
-atom :: Parser AstNode
-atom = AAtom <$> lexeme ((:) <$> (lowerChar <|> sym) <*> many restChar)
+atom :: Parser PhageVal
+atom = PAtom <$> lexeme ((:) <$> (lowerChar <|> sym) <*> many restChar)
     where
     restChar = lowerChar <|> upperChar <|> sym <|> digitChar
 
-number :: Parser AstNode
-number = ANum <$> lexeme L.decimal
+number :: Parser PhageVal
+number = PNum <$> lexeme L.decimal
 
-val :: Parser AstNode
+val :: Parser PhageVal
 val = list <|> number <|> atom
 
-list :: Parser AstNode
-list = parens $ AList <$> many val
+list :: Parser PhageVal
+list = parens $ PList <$> many val
 
-parseAst :: Parser Ast
-parseAst = Ast <$> (sc >> many val) <* eof
+parseAst :: Parser [PhageVal]
+parseAst = (sc >> many val) <* eof

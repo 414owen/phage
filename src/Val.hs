@@ -8,7 +8,6 @@ module Val
 import Err
 import SymTab
 import Text.Show.Functions
-import Ast
 import Data.Map
 import Data.List
 import Control.Monad.Trans.Except
@@ -19,12 +18,13 @@ type PhageFunc =
         ->  ExceptT PhageErr IO PhageVal
 
 type PhageForm =
-            [AstNode]
+            [PhageVal]
         ->  SymTab PhageVal
         ->  ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
 
 data PhageVal
     = PNum Integer
+    | PChar Char
     | PAtom String
     | PList [PhageVal]
     | PBool Bool
@@ -35,6 +35,7 @@ spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = intercalate space (show <$> els)
 
 instance Show PhageVal where
+    show (PChar c) = show c
     show (PNum a) = show a
     show (PAtom a) = a
     show (PBool True) = "true"

@@ -2,7 +2,6 @@ module Phagelude
     ( phagelude
     ) where
 
-import Ast
 import Err
 import Val
 import SymTab
@@ -15,7 +14,6 @@ import Control.Monad.Trans.Except
 
 newTab :: [(String, PhageVal)] -> SymTab PhageVal -> SymTab PhageVal
 newTab vs tab = Prelude.foldl (\m (k, v) -> insert k v m) tab vs
-
 typeMess :: Integer -> String -> PhageVal -> PhageErr
 typeMess n exp val = "Parameter " ++ show n ++ " has the wrong type,\
     \ expecting '" ++ exp ++ "' but got '" ++ typeName val ++ "'"
@@ -128,31 +126,40 @@ lists = concat
 
 specials :: [(String, PhageVal)]
 specials =
-    [ ("if", PForm 3 ifFunc)
-    , ("cond", PForm 0 condFunc)
-    , ("\\", PForm 2 funcFunc)
-    , ("def", PForm 2 def)
-    , ("let", PForm 1 letFunc)
-    , ("fun", PForm 2 namedFun)
+    fmapmapsnd (uncurry PForm)
+    [ ("if", (3, ifFunc))
+    , ("cond", (0, condFunc))
+    , ("\\", (2, funcFunc))
+    , ("def", (2, def))
+    , ("let", (1, letFunc))
+    , ("fun", (2, namedFun))
+    , ("quote", (1, quoteFunc))
     ] where
-        param (AAtom str) = ret str
+        quoter (PNum a) = PNum a
+        quoter (PAtom a) = PList $ PChar <$> a
+        quoter (PList a) = PList $ quoter <$> a
+
+        quoteFunc :: PhageForm
+        quoteFunc [a] t = ret $ (quoter a, t)
+
+        param (PAtom str) = ret str
         param thing = throwE $ "Invalid parameter name: " <> show thing
 
-        runFunc :: [AstNode] -> [String] -> PhageFunc
+        runFunc :: [PhageVal] -> [String] -> PhageFunc
         runFunc blk strs params oldtab =
             let tab = newTab (zip strs params) oldtab in
                 lastDef (PList []) <$> block tab blk
 
         -- named functions support recursion
         namedFun :: PhageForm
-        namedFun (AAtom name : AList strs : blk) tab = mapM param strs
+        namedFun (PAtom name : PList strs : blk) tab = mapM param strs
             >>= \strs ->
                 let fn = PFunc (length strs) [] (insert name fn tab) (runFunc blk strs)
                 in  ret (fn, insert name fn tab)
 
         letFunc' :: PhageVal -> PhageForm
         letFunc' res [] t = ret (res, t)
-        letFunc' res (AList [AAtom str, val] : others) t = eval t val
+        letFunc' res (PList [PAtom str, val] : others) t = eval t val
             >>= \(val, ntab) -> letFunc' val others (insert str val t)
         letFunc' _ a _ = formErr "let"
 
@@ -160,25 +167,25 @@ specials =
         letFunc = letFunc' (PList [])
 
         def :: PhageForm
-        def [AAtom a, b] tab = letFunc [AList [AAtom a, b]] tab
+        def [PAtom a, b] tab = letFunc [PList [PAtom a, b]] tab
         def a _ = formErr "def"
 
         funcFunc :: PhageForm
-        funcFunc (AList atoms : blk) tab = mapM param atoms
+        funcFunc (PList atoms : blk) tab = mapM param atoms
             >>= \strs ->
                 ret (PFunc (length strs) [] tab (runFunc blk strs), tab)
         funcFunc _ _ = formErr "fun"
 
         condFunc :: PhageForm
         condFunc [] tab = ExceptT $ return $ Left "Condition not met"
-        condFunc (AList [pred, val] : nodes) tab = eval tab pred
+        condFunc (PList [pred, val] : nodes) tab = eval tab pred
             >>= \(pred, t) -> if truthy pred
                 then eval tab val
                 else condFunc nodes tab
         condFunc _ _ = formErr "cond"
 
         ifFunc :: PhageForm
-        ifFunc [a, b, c] = condFunc [AList [a, b], AList [ANum 1, c]]
+        ifFunc [a, b, c] = condFunc [PList [a, b], PList [PNum 1, c]]
 
 allVals :: [(String, PhageVal)]
 allVals = concat

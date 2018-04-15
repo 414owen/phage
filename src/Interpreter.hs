@@ -5,7 +5,6 @@ module Interpreter
     ) where
 
 import Err
-import Ast
 import Val
 import SymTab
 import Data.Monoid
@@ -25,16 +24,16 @@ reduceFunc (PFunc arity params env fn) (v : xs)
     = reduceFunc (PFunc (arity - 1) (v : params) env fn) xs
 
 -- in a block, symtab updates carry through the scope they are defined in
-block :: SymTab PhageVal -> [AstNode] -> ExceptT PhageErr IO [PhageVal]
+block :: SymTab PhageVal -> [PhageVal] -> ExceptT PhageErr IO [PhageVal]
 block tab [] = ExceptT (return $ Right [])
 block tab [n] = pure . fst <$> eval tab n
 block tab (n:ns) = eval tab n >>= \(v, t) -> (v:) <$> block t ns
 
-eval :: SymTab PhageVal -> AstNode -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
-eval tab (ANum a) = return (PNum a, tab)
-eval tab (AAtom str) = (,tab) <$> ExceptT (return (lkp tab str))
-eval tab (AList [])  = return (PList [], tab)
-eval tab (AList (fn : params)) = eval tab fn
+eval :: SymTab PhageVal -> PhageVal -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+eval tab (PNum a) = return (PNum a, tab)
+eval tab (PAtom str) = (,tab) <$> ExceptT (return (lkp tab str))
+eval tab (PList [])  = return (PList [], tab)
+eval tab (PList (fn : params)) = eval tab fn
     >>= \(fn, ftab) -> case fn of
         (PFunc a p t f) -> block tab params
             >>= \ps -> case reduceFunc fn ps of
@@ -44,5 +43,5 @@ eval tab (AList (fn : params)) = eval tab fn
         (PForm a f) -> ExceptT $ return $ Left "Not enough params to form"
         _ -> ExceptT $ return $ Left "Tried to call a non-function"
 
-interpret :: SymTab PhageVal -> Ast -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
-interpret prelude (Ast nodes) = foldM (eval . snd) (PList [], prelude) nodes
+interpret :: SymTab PhageVal -> [PhageVal] -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+interpret prelude nodes = foldM (eval . snd) (PList [], prelude) nodes
