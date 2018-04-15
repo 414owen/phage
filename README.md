@@ -67,7 +67,7 @@ The following functions:
 // `list` creates a list from its parameters
 λ: (list 1 2 3)
 >> (1 2 3)
-λ: (list (1 2 3 (list 4 5) 6 7)
+λ: (list 1 2 3 (list 4 5) 6 7)
 >> (1 2 3 (4 5) 6 7)
 
 // `cons` adds an item to the start of a list

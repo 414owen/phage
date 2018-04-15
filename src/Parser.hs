@@ -11,7 +11,7 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import Text.Megaparsec.Expr
 
 syms :: String
-syms = "!#$%&*+./<=>?@\\^|-~"
+syms = "\"'£€_<>[]`;{}¬:!#$%&*+./<=>?@\\^|-~"
 
 sym :: Parser Char
 sym = oneOf syms <?> "symbol"

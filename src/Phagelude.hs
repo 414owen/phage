@@ -210,7 +210,9 @@ allVals = concat
     ] where
         prnt :: PhageFunc
         prnt []  t = ret (putStrLn "") (PList [])
-        prnt lst t = ret (mapM print lst) (last lst)
+        prnt lst t =
+            ret ((mapM (putStr . (<> " ") . show) lst) >> putStrLn "")
+                (last lst)
 
         ret :: IO a -> b -> ExceptT PhageErr IO b
         ret a b = ExceptT $ const (Right b) <$> a
