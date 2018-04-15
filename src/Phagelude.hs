@@ -82,12 +82,18 @@ arith =
 comparison :: [(String, PhageVal)]
 comparison =
     fmapmapsnd (createOnTwoInts PBool)
-        [ ("=", (==))
-        , ("<", (<))
+        [ ("<", (<))
         , (">", (>))
         , ("<=", (<=))
         , (">=", (>=))
         ]
+
+anyVal :: [(String, PhageVal)]
+anyVal =
+    fmapmapsnd (mkFunc 2 . binFunc (PBool))
+    [ ("=", (==))
+    ] where
+        binFunc constr f [a, b] t = ret $ constr $ f a b
 
 consts :: [(String, PhageVal)]
 consts =
@@ -199,6 +205,7 @@ allVals = concat
     , consts
     , specials
     , lists
+    , anyVal
     , [("print", mkFunc 1 prnt)]
     ] where
         prnt :: PhageFunc

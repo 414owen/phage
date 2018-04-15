@@ -34,14 +34,22 @@ data PhageVal
 spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = intercalate space (show <$> els)
 
+instance Eq PhageVal where
+    (==) (PNum a)  (PNum b)  = a == b
+    (==) (PChar a) (PChar b) = a == a
+    (==) (PAtom a) (PAtom b) = a == b
+    (==) (PList a) (PList b) = a == b
+    (==) (PBool a) (PBool b) = a == b
+    (==) _         _         = False
+
 instance Show PhageVal where
-    show (PChar c) = show c
-    show (PNum a) = show a
-    show (PAtom a) = a
-    show (PBool True) = "true"
-    show (PBool False) = "false"
-    show (PList els) = "(" ++ spacedShow " " els ++ ")"
-    show (PForm _ _) = "<form>"
+    show (PNum a)         = show a
+    show (PChar c)        = show c
+    show (PAtom a)        = a
+    show (PBool True)     = "true"
+    show (PBool False)    = "false"
+    show (PList els)      = "(" ++ spacedShow " " els ++ ")"
+    show (PForm _ _)      = "<form>"
     show (PFunc a p s fn) = "<func | arity: " ++ show a ++
         ", bound params: [" ++ spacedShow ", " p ++ "]>"
 
