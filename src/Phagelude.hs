@@ -60,9 +60,18 @@ truthy (PNum 0) = False
 truthy (PAtom "") = False
 truthy _ = True
 
+fmapmapsnd = fmap . mapSnd
+
+err = ExceptT . return . Left
+ret = ExceptT . return . Right
+
+callErr s = err ("Unexpected call to " <> s <> ":")
+formErr s = callErr ("form " <> s)
+funcErr s = callErr ("func " <> s)
+
 arith :: [(String, PhageVal)]
 arith =
-    fmap (mapSnd (createOnTwoInts PNum))
+    fmapmapsnd (createOnTwoInts PNum)
         [ ("+", (+))
         , ("-", (-))
         , ("*", (*))
@@ -74,7 +83,7 @@ arith =
 
 comparison :: [(String, PhageVal)]
 comparison =
-    fmap (mapSnd (createOnTwoInts PBool))
+    fmapmapsnd (createOnTwoInts PBool)
         [ ("=", (==))
         , ("<", (<))
         , (">", (>))
@@ -89,8 +98,33 @@ consts =
     , ("false", PBool False)
     ]
 
-formErr :: String -> String
-formErr = (<>) "Unrecognized call to form "
+cardrs = concat $ fmap gen [1..6]
+    where
+        gen :: Int -> [String]
+        gen 0 = [""]
+        gen a = gen (a - 1) >>= \b -> ['a' : b, 'd' : b]
+
+lists :: [(String, PhageVal)]
+lists = concat
+    [ fmapmapsnd (uncurry mkFunc)
+      [ ("list", (1, listFunc))
+      , ("cons", (2, consFunc))
+      ]
+    , fmap mkardr cardrs
+    ] where
+        listFunc vals _ = ret $ PList vals
+        consFunc [x, PList xs] _ = ret $ PList (x : xs)
+        consFunc _ _ = funcErr "cons"
+
+        mkardrFunc :: String -> String -> PhageFunc
+        mkardrFunc _ [] [val] _ = ret val
+        mkardrFunc n ('a' : rst) [PList (x : xs)] t = mkardrFunc n rst [x] t
+        mkardrFunc n ('d' : rst) [PList (x : xs)] t = mkardrFunc n rst [PList xs] t
+        mkardrFunc name _ _ _ = formErr name
+
+        mkardr :: String -> (String, PhageVal)
+        mkardr s = let name = 'c' : s <> "r" in
+            (name, mkFunc 1 $ mkardrFunc name s)
 
 specials :: [(String, PhageVal)]
 specials =
@@ -101,10 +135,6 @@ specials =
     , ("let", PForm 1 letFunc)
     , ("fun", PForm 2 namedFun)
     ] where
-        ret = ExceptT . return . Right
-        err = ExceptT . return . Left
-        foer = err . formErr
-
         param (AAtom str) = ret str
         param thing = throwE $ "Invalid parameter name: " <> show thing
 
@@ -124,19 +154,20 @@ specials =
         letFunc' res [] t = ret (res, t)
         letFunc' res (AList [AAtom str, val] : others) t = eval t val
             >>= \(val, ntab) -> letFunc' val others (insert str val t)
-        letFunc' _ a _ = foer "let"
+        letFunc' _ a _ = formErr "let"
 
         letFunc :: PhageForm
         letFunc = letFunc' (PList [])
 
         def :: PhageForm
         def [AAtom a, b] tab = letFunc [AList [AAtom a, b]] tab
-        def a _ = foer "def"
+        def a _ = formErr "def"
 
         funcFunc :: PhageForm
         funcFunc (AList atoms : blk) tab = mapM param atoms
             >>= \strs ->
                 ret (PFunc (length strs) [] tab (runFunc blk strs), tab)
+        funcFunc _ _ = formErr "fun"
 
         condFunc :: PhageForm
         condFunc [] tab = ExceptT $ return $ Left "Condition not met"
@@ -144,7 +175,7 @@ specials =
             >>= \(pred, t) -> if truthy pred
                 then eval tab val
                 else condFunc nodes tab
-        condFunc _ _ = throwE "Unrecognized form in call to <cond>"
+        condFunc _ _ = formErr "cond"
 
         ifFunc :: PhageForm
         ifFunc [a, b, c] = condFunc [AList [a, b], AList [ANum 1, c]]
@@ -155,6 +186,7 @@ allVals = concat
     , comparison
     , consts
     , specials
+    , lists
     , [("print", mkFunc 1 prnt)]
     ] where
         prnt :: PhageFunc
