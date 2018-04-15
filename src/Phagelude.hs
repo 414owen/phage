@@ -63,9 +63,9 @@ fmapmapsnd = fmap . mapSnd
 err = ExceptT . return . Left
 ret = ExceptT . return . Right
 
-callErr s = err ("Unexpected call to " <> s <> ":")
-formErr s = callErr ("form " <> s)
-funcErr s = callErr ("func " <> s)
+callErr s = err ("Unexpected call to " <> s)
+formErr = callErr . ("form " <>)
+funcErr = callErr . ("func " <>)
 
 arith :: [(String, PhageVal)]
 arith =
@@ -134,13 +134,18 @@ specials =
     , ("let", (1, letFunc))
     , ("fun", (2, namedFun))
     , ("quote", (1, quoteFunc))
+    , ("eval", (1, evalFunc))
     ] where
-        quoter (PNum a) = PNum a
-        quoter (PAtom a) = PList $ PChar <$> a
         quoter (PList a) = PList $ quoter <$> a
+        quoter a = a
 
         quoteFunc :: PhageForm
         quoteFunc [a] t = ret $ (quoter a, t)
+        quoteFunc _ _ = formErr "quote"
+
+        evalFunc :: PhageForm
+        evalFunc [a] t = eval t a >>= \(v, t) -> eval t v
+        evalFunc _ _ = formErr "eval"
 
         param (PAtom str) = ret str
         param thing = throwE $ "Invalid parameter name: " <> show thing
