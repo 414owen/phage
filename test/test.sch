@@ -21,6 +21,7 @@
 		((car (list 3 4 5)) 3)
 		((cdr (list 3 4 5 6)) (quote (4 5 6)))
 		((cadadr (list (list 2 (list 4 5 6)))) (quote (5 6)))
+		((fact 5) 120)
 	)))
 
 (fun len (lst)
