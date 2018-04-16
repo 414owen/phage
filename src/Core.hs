@@ -191,6 +191,7 @@ specials =
             >>= \strs ->
                 let fn = PFunc (length strs) [] (insert name fn tab) (runFunc blk strs)
                 in  ret (fn, insert name fn tab)
+        namedFunc _ _ = formErr "fun"
 
         letFunc' :: PhageVal -> PhageForm
         letFunc' res [] t = ret (res, t)
