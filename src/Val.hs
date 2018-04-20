@@ -10,6 +10,7 @@ import SymTab
 import Text.Show.Functions
 import Data.Map
 import Data.List
+import Data.Monoid
 import Control.Monad.Trans.Except
 
 type PhageFunc =
@@ -46,15 +47,15 @@ instance Eq PhageVal where
 
 instance Show PhageVal where
     show (PNum a)         = show a
-    show (PChar c)        = show c
+    show (PChar c)        = pure c
     show (PAtom a)        = a
-    show (PStr s)         = show s
+    show (PStr s)         = s
     show (PBool True)     = "true"
     show (PBool False)    = "false"
-    show (PList els)      = "(" ++ spacedShow " " els ++ ")"
+    show (PList els)      = "(" <> spacedShow " " els <> ")"
     show (PForm _ _)      = "<form>"
-    show (PFunc a p s fn) = "<func | arity: " ++ show a ++
-        ", bound params: [" ++ spacedShow ", " p ++ "]>"
+    show (PFunc a p s fn) = "<func | arity: " <> show a <>
+        ", bound params: [" <> spacedShow ", " p <> "]>"
 
 typeName :: PhageVal -> String
 typeName (PNum _)        = "num"

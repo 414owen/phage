@@ -1,3 +1,7 @@
+// returns a list of its arguments
+(fun list () args)
+
+// functional
 (fun dot (a b c) (a (b c)))
 (fun const (a b) a)
 
@@ -8,6 +12,13 @@
 	(foldrec zero lst))
 
 (def rev (fold () cons))
+(def last (dot car rev))
+(def init (dot rev (dot cdr rev)))
+(def all (fold true and))
+(def any (fold false or))
+
+// do just returns its last parameter
+(fun do () (last args))
 
 (fun map (fn lst)
 	 (rev (fold ()

@@ -14,14 +14,12 @@ import SymTab
 import Safe
 import Parser
 import Interpreter
-import Data.Map
+import Data.Map (insert)
 import Data.Maybe
 import Data.Monoid
 import Control.Monad.Trans.Except
 import Text.Megaparsec
 
-newTab :: [(String, PhageVal)] -> SymTab PhageVal -> SymTab PhageVal
-newTab vs tab = Prelude.foldl (\m (k, v) -> insert k v m) tab vs
 typeMess :: Integer -> String -> PhageVal -> PhageErr
 typeMess n exp val = "Parameter " ++ show n ++ " has the wrong type,\
     \ expecting '" ++ exp ++ "' but got '" ++ typeName val ++ "'"
@@ -69,7 +67,6 @@ truthy _ = True
 fmapmapsnd = fmap . mapSnd
 
 err = ExceptT . return . Left
-ret = ExceptT . return . Right
 
 callErr s = err ("Unexpected call to " <> s)
 formErr = callErr . ("form " <>)
@@ -83,8 +80,6 @@ arith =
         , ("*", (*))
         , ("/", div)
         , ("%", mod)
-        , ("min", min)
-        , ("max", max)
         ]
 
 comparison :: [(String, PhageVal)]
@@ -98,10 +93,15 @@ comparison =
 
 anyVal :: [(String, PhageVal)]
 anyVal =
-    fmapmapsnd (mkFunc 2 . binFunc (PBool))
-    [ ("=", (==))
+    concat $
+    fmap (\(f, s) -> fmap (\w -> (w, mkFunc 2 $ binFunc PBool s)) (words f))
+    [ ("= eq", (==))
+    , ("& and", andFunc)
+    , ("| or", orFunc)
     ] where
-        binFunc constr f [a, b] t = ret $ constr $ f a b
+        binFunc constr f [a, b] t = pure $ constr $ f a b
+        andFunc a b = truthy a && truthy b
+        orFunc a b = truthy a || truthy b
 
 consts :: [(String, PhageVal)]
 consts =
@@ -119,17 +119,15 @@ cardrs = concat $ fmap gen [1..6]
 lists :: [(String, PhageVal)]
 lists = concat
     [ fmapmapsnd (uncurry mkFunc)
-      [ ("list", (1, listFunc))
-      , ("cons", (2, consFunc))
+      [ ("cons", (2, consFunc))
       ]
     , fmap mkardr cardrs
     ] where
-        listFunc vals _ = ret $ PList vals
-        consFunc [x, PList xs] _ = ret $ PList (x : xs)
+        consFunc [x, PList xs] _ = pure $ PList (x : xs)
         consFunc _ _ = funcErr "cons"
 
         mkardrFunc :: String -> String -> PhageFunc
-        mkardrFunc _ [] [val] _ = ret val
+        mkardrFunc _ [] [val] _ = pure val
         mkardrFunc n ('a' : rst) [PList (x : xs)] t = mkardrFunc n rst [x] t
         mkardrFunc n ('d' : rst) [PList (x : xs)] t = mkardrFunc n rst [PList xs] t
         mkardrFunc name _ _ _ = formErr name
@@ -149,10 +147,8 @@ specials =
     , ("fun", (2, namedFun))
     , ("quote", (1, quoteFunc))
     , ("eval", (1, evalFunc))
-    , ("do", (1, doFunc)) -- do is technically a function...
     , ("import", (1, importFunc))
     ] where
-
         importFunc :: PhageForm
         importFunc [PStr fname] t =
             ExceptT $ readFile fname >>= imp
@@ -162,39 +158,45 @@ specials =
                     Right ast -> runExceptT $ interpret t ast
         importFunc _ _ = formErr "import"
 
-        doFunc :: PhageForm
-        doFunc [] t = funcErr "do"
-        doFunc n t = ((, t) . last) <$> block t n
-
         quoter (PList a) = PList $ quoter <$> a
         quoter a = a
 
         quoteFunc :: PhageForm
-        quoteFunc [a] t = ret $ (quoter a, t)
+        quoteFunc [a] t = pure $ (quoter a, t)
         quoteFunc _ _ = formErr "quote"
 
         evalFunc :: PhageForm
         evalFunc [a] t = eval t a >>= \(v, t) -> eval t v
         evalFunc _ _ = formErr "eval"
 
-        param (PAtom str) = ret str
+        param (PAtom str) = pure str
         param thing = throwE $ "Invalid parameter name: " <> show thing
 
         runFunc :: [PhageVal] -> [String] -> PhageFunc
         runFunc blk strs params oldtab =
-            let tab = newTab (zip strs params) oldtab in
-                lastDef (PList []) <$> block tab blk
+            let entries = [ ("args", PList params)
+                          , ("rest", PList (drop (length strs) params))
+                          ]
+                tab = newTab (entries <> zip strs params) oldtab
+            in  lastDef (PList []) <$> block tab blk
+
+        funcreate (PList strs : blk) tab selfrefs = mapM param strs
+            >>= \strs ->
+                let srefs = selfrefs <> ["rec"]
+                    f = PFunc (length strs) []
+                        (newTab (zip srefs (repeat f)) tab)
+                        (runFunc blk strs)
+                in  pure f
+        funcreate _ _ _ = formErr "function"
 
         -- named functions support recursion
         namedFun :: PhageForm
-        namedFun (PAtom name : PList strs : blk) tab = mapM param strs
-            >>= \strs ->
-                let fn = PFunc (length strs) [] (insert name fn tab) (runFunc blk strs)
-                in  ret (fn, insert name fn tab)
+        namedFun (PAtom name : params) tab = funcreate params tab [name]
+            >>= \f -> pure (f, insert name f tab)
         namedFunc _ _ = formErr "fun"
 
         letFunc' :: PhageVal -> PhageForm
-        letFunc' res [] t = ret (res, t)
+        letFunc' res [] t = pure (res, t)
         letFunc' res (PList [PAtom str, val] : others) t = eval t val
             >>= \(val, ntab) -> letFunc' val others (insert str val t)
         letFunc' _ a _ = formErr "let"
@@ -207,10 +209,7 @@ specials =
         def a _ = formErr "def"
 
         funcFunc :: PhageForm
-        funcFunc (PList atoms : blk) tab = mapM param atoms
-            >>= \strs ->
-                ret (PFunc (length strs) [] tab (runFunc blk strs), tab)
-        funcFunc _ _ = formErr "fun"
+        funcFunc params tab = (,tab) <$> funcreate params tab []
 
         condFunc :: PhageForm
         condFunc [] tab = ExceptT $ return $ Left "Condition not met"
@@ -221,7 +220,8 @@ specials =
         condFunc _ _ = formErr "cond"
 
         ifFunc :: PhageForm
-        ifFunc [a, b, c] = condFunc [PList [a, b], PList [PNum 1, c]]
+        ifFunc [a, b, c] t = condFunc [PList [a, b], PList [PNum 1, c]] t
+        ifFunc _ t = formErr "if"
 
 allVals :: [(String, PhageVal)]
 allVals = concat
@@ -236,10 +236,10 @@ allVals = concat
         prnt :: PhageFunc
         prnt lst t =
             ret ((mapM (putStr . (<> " ") . show) lst) >> putStrLn "")
-                (last lst)
+                (lastDef (PList []) lst)
 
         ret :: IO a -> b -> ExceptT PhageErr IO b
         ret a b = ExceptT $ const (Right b) <$> a
 
-core :: Map String PhageVal
+core :: SymTab PhageVal
 core = newTab allVals mempty
