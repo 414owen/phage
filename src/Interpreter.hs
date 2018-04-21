@@ -52,7 +52,6 @@ eval tab (PList (fname : params)) = eval tab fname
         (PForm a f) -> ExceptT $ return $ Left "Not enough params to form"
         a -> ExceptT $ return $ Left
              ("Tried to call a non-function: " <> show a)
--- matches numbers, strings, and empty lists
 eval tab thing = return (thing, tab)
 
 interpret ::

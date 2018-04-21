@@ -64,6 +64,11 @@ truthy (PNum 0) = False
 truthy (PAtom "") = False
 truthy _ = True
 
+funcy :: PhageVal -> Bool
+funcy (PFunc _ _ _ _) = True
+funcy (PForm _ _) = True
+funcy _ = False
+
 fmapmapsnd = fmap . mapSnd
 
 err = ExceptT . return . Left
@@ -148,7 +153,7 @@ metaFuncs =
         arFunc _ _ = funcErr "arity"
 
         apFunc :: PhageFunc
-        apFunc [PFunc _ ps t fn, PList args] _ = fn (args <> ps) t
+        apFunc [PFunc _ ps t fn, PList args] _ = fn (reverse ps <> args) t
         apFunc _ _ = funcErr "apply"
 
 specials :: [(String, PhageVal)]

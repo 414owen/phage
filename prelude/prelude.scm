@@ -4,6 +4,7 @@
 // functional
 (fun dot (a b c) (a (b c)))
 (fun const (a b) a)
+
 (fun pipe ()
 	(def funs args)
 	(fun piperec (params lst)
@@ -23,6 +24,10 @@
 (def all (fold true and))
 (def any (fold false or))
 
+(fun dot ()
+	 (def a (rev args))
+	 (pipe a))
+
 // do just returns its last parameter
 (fun do () (last args))
 
@@ -32,7 +37,7 @@
 
 (def sum (fold 0 +))
 (def prod (fold 1 *))
-(def len (dot sum (map (const 1))))
+(def len (pipe (map (const 1)) sum))
 (fun filter (fn lst)
 	(rev (fold () (\(el acc)
 		(if (fn el) (cons el acc) acc)) lst)))
