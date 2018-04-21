@@ -2,15 +2,20 @@ module Interpreter
     ( interpret
     , eval
     , block
+    , tr
     ) where
 
 import Err
 import Val
 import SymTab
+import Debug.Trace
 import Data.Monoid
 import Control.Monad
 import Control.Monad.Trans.Except
 import Data.Map
+
+tr :: Show a => String -> a -> a
+tr s a = trace (s <> ": " <> show a) a
 
 lkp :: SymTab PhageVal -> String -> Either PhageErr PhageVal
 lkp tab str = case Data.Map.lookup str tab of
@@ -26,14 +31,18 @@ type Acc = ExceptT PhageErr IO ([PhageVal], SymTab PhageVal)
 
 -- in a block, symtab updates carry through the scope they are defined in
 block :: SymTab PhageVal -> [PhageVal] -> ExceptT PhageErr IO [PhageVal]
-block tab blk = fst <$> foldM folder ([], tab) blk
+block tab blk = reverse . fst <$> foldM folder ([], tab) blk
     where
         folder :: ([PhageVal], SymTab PhageVal) -> PhageVal -> Acc
         folder (acc, tab) node = eval tab node >>= \(v, t) -> pure (v:acc, t)
 
+-- old version of block
+{- block tab [] = pure [] -}
+{- block tab (n:ns) = eval tab n >>= \(v, t) -> (v:) <$> block t ns -}
+
 eval :: SymTab PhageVal -> PhageVal -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
 eval tab (PAtom str) = (,tab) <$> ExceptT (pure (lkp tab str))
-eval tab (PList (fn : params)) = eval tab fn
+eval tab (PList (fname : params)) = eval tab fname
     >>= \(fn, ftab) -> case fn of
         (PFunc a p t f) -> block tab params
             >>= \ps -> case reduceFunc fn ps of
@@ -41,7 +50,8 @@ eval tab (PList (fn : params)) = eval tab fn
                 a -> return (a, tab)
         (PForm a f) | a <= length params -> f params tab
         (PForm a f) -> ExceptT $ return $ Left "Not enough params to form"
-        _ -> ExceptT $ return $ Left "Tried to call a non-function"
+        a -> ExceptT $ return $ Left
+             ("Tried to call a non-function: " <> show a)
 -- matches numbers, strings, and empty lists
 eval tab thing = return (thing, tab)
 

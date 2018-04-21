@@ -113,28 +113,43 @@ consts =
 cardrs = concat $ fmap gen [1..6]
     where
         gen :: Int -> [String]
-        gen 0 = [""]
+        gen 0 = ["r"]
         gen a = gen (a - 1) >>= \b -> ['a' : b, 'd' : b]
 
 lists :: [(String, PhageVal)]
 lists = concat
     [ fmapmapsnd (uncurry mkFunc)
-      [ ("cons", (2, consFunc))
-      ]
+      [ ("cons", (2, consFunc)) ]
     , fmap mkardr cardrs
     ] where
         consFunc [x, PList xs] _ = pure $ PList (x : xs)
         consFunc _ _ = funcErr "cons"
 
         mkardrFunc :: String -> String -> PhageFunc
-        mkardrFunc _ [] [val] _ = pure val
         mkardrFunc n ('a' : rst) [PList (x : xs)] t = mkardrFunc n rst [x] t
         mkardrFunc n ('d' : rst) [PList (x : xs)] t = mkardrFunc n rst [PList xs] t
-        mkardrFunc name _ _ _ = formErr name
+        mkardrFunc _ "r" [val] _ = pure val
+        mkardrFunc name _ l _ = formErr (name <> ": " <> show l)
 
         mkardr :: String -> (String, PhageVal)
-        mkardr s = let name = 'c' : s <> "r" in
-            (name, mkFunc 1 $ mkardrFunc name s)
+        mkardr adr = let name = 'c' : adr in
+            (name, mkFunc 1 $ mkardrFunc name adr)
+
+metaFuncs :: [(String, PhageVal)]
+metaFuncs =
+    fmapmapsnd (uncurry mkFunc)
+    [ ("arity", (1, arFunc))
+    , ("apply", (2, apFunc))
+    ] where
+        arFunc :: PhageFunc
+        arFunc [PFunc ar ps _ _] t = pure $
+            PNum $ toInteger $ max (ar - (length ps)) 0
+        arFunc [PForm ar _] t = pure $ PNum $ toInteger $ ar
+        arFunc _ _ = funcErr "arity"
+
+        apFunc :: PhageFunc
+        apFunc [PFunc _ ps t fn, PList args] _ = fn (args <> ps) t
+        apFunc _ _ = funcErr "apply"
 
 specials :: [(String, PhageVal)]
 specials =
@@ -231,6 +246,7 @@ allVals = concat
     , specials
     , lists
     , anyVal
+    , metaFuncs
     , [("print", mkFunc 0 prnt)]
     ] where
         prnt :: PhageFunc

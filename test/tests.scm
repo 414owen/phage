@@ -1,8 +1,10 @@
+(print "importing prelude")
+
 (import "prelude/prelude.scm")
 
-(fun fact (a) (if (<= a 0) 1 (* a (fact (- a 1)))))
-
 (def tlst (list 1 2 3 4))
+
+(print "creating test structure")
 
 (def tests
 	(quote (
@@ -42,7 +44,6 @@
 		((car (list 3 4 5)) 3)
 		((cdr (list 3 4 5 6)) (quote (4 5 6)))
 		((cadadr (list (list 2 (list 4 5 6)))) (quote (5 6)))
-		((fact 5) 120)
 		((rev (list 1 2 3)) (list 3 2 1))
 		((map (+ 1) tlst) (list 2 3 4 5))
 		((sum tlst) 10)
@@ -62,14 +63,11 @@
 		((any (list 0 false ())) false)
 	)))
 
-(fun len (lst)
-	(fun lrec (acc l)
-		(if (= l ())
-			acc
-			(lrec (+ acc 1) (cdr l))))
-	(lrec 0 lst))
+(print "getting length of cases")
 
 (def cases (len tests))
+
+(print "running tests")
 
 (fun run (t)
 	(fun runrec (n a t)
@@ -91,6 +89,6 @@
 
 (def passed (run tests))
 (print)
-(print (quote cases:) cases)
-(print (quote passed:) passed)
-(print (quote failed:) (- cases passed))
+(print "cases:" cases)
+(print "passed:" passed)
+(print "failed:" (- cases passed))

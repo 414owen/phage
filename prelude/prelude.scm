@@ -4,6 +4,12 @@
 // functional
 (fun dot (a b c) (a (b c)))
 (fun const (a b) a)
+(fun pipe ()
+	(def funs args)
+	(fun piperec (params lst)
+		(if (= lst ()) (car params)
+		(rec (list (apply (car lst) params)) (cdr lst))))
+	(\() (piperec args funs)))
 
 (fun fold (zero fn lst)
 	(fun foldrec (acc lst)
