@@ -1,9 +1,12 @@
+(fun fold (zero fn lst)
+	((\(acc lst)
+		(if (= lst ()) acc
+			(rec (fn (car lst) acc) (cdr lst))))
+		zero lst))
+
 // homogeneous binary function helper
 
-(fun homBinFunc (fn)
-	(\(a b)
-		(def res (fn a b))
-		(if (= rest ()) res (apply rec (cons res rest)))))
+(fun homBinFunc (fn) (\(a b) (fold b fn (cons a rest))))
 
 
 // boolean logic
@@ -36,12 +39,6 @@
 		(if (= lst ()) (car params)
 		(rec (list (apply (car lst) params)) (cdr lst))))
 	(\() (piperec args funs)))
-
-(fun fold (zero fn lst)
-	(fun foldrec (acc lst)
-		(if (= lst ()) acc
-			(foldrec (fn (car lst) acc) (cdr lst))))
-	(foldrec zero lst))
 
 (def rev (fold () cons))
 (def last (dot car rev))
@@ -80,9 +77,9 @@
 		(append (car lsts) (concat (cdr lsts)))))
 
 (fun intersperse (el lst)
-	(fun insp (el lst)
+	(cdr ((\(el lst)
 		(if (= lst ()) ()
-			(cons el (cons (car lst) (insp el (cdr lst))))))
-	(cdr (insp el lst)))
+			(cons el (cons (car lst) (rec el (cdr lst))))))
+		 el lst)))
 
 (def intercalate (pipe intersperse concat))
