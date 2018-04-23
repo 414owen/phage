@@ -1,7 +1,32 @@
+// homogeneous binary function helper
+
+(fun homBinFunc (fn)
+	(\(a b)
+		(def res (fn a b))
+		(if (= rest ()) res (apply rec (cons res rest)))))
+
+
+// boolean logic
+
+(def &  (homBinFunc (\(a b) (! (| (! a) (! b))))))
+(def -> (homBinFunc (\(a b) (| (! a) b))))
+(def ^  (homBinFunc (\(a b) (& (| a b) (! (& a b))))))
+(def ~= (homBinFunc (\(a b) (! (^ a b)))))
+
+(let
+	(implies ->)
+	(and &)
+	(xor |)
+	(equiv ~=))
+
+
 // returns a list of its arguments
+
 (fun list () args)
 
+
 // functional
+
 (fun dot (a b c) (a (b c)))
 (fun const (a b) a)
 
@@ -26,7 +51,9 @@
 (def rpipe (pipe list rev (apply pipe)))
 (def dot rpipe)
 
+
 // do just returns its last parameter
+
 (fun do () (last args))
 
 (fun map (fn lst)
@@ -58,5 +85,4 @@
 			(cons el (cons (car lst) (insp el (cdr lst))))))
 	(cdr (insp el lst)))
 
-(fun intercalate (lsta lsts)
-	(concat (intersperse lsta lsts)))
+(def intercalate (pipe intersperse concat))

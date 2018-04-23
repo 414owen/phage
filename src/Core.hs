@@ -24,6 +24,21 @@ import Text.Megaparsec
 
 typeMess = "wrong type supplied to function"
 
+
+-- these functions apply to their first argument, and
+-- ignore subsequent arguments
+unaryFunc ::
+       (PhageVal -> Maybe a)
+    -> (b -> PhageVal)
+    -> (a -> b)
+    -> PhageVal
+unaryFunc from to fn = mkFunc 1 nf
+    where
+        nf (x : xs) _ = case from x of
+            Just a -> pure $ to $ fn a
+            _ -> throwE typeMess
+
+
 -- these functions take the form (a -> b -> c)
 -- but if more arguments are passed in, they are ignored
 binFunc ::
@@ -35,10 +50,10 @@ binFunc ::
 binFunc fromA fromB toC fn = mkFunc 2 nf
     where
         nf :: PhageFunc
-        nf (a : b : xs) tab = case (fromA a, fromB b) of
-            (Nothing, _) -> throwE $ typeMess
-            (_, Nothing) -> throwE $ typeMess
+        nf (a : b : xs) _ = case (fromA a, fromB b) of
             (Just a, Just b) -> return $ toC $ fn a b
+            _ -> throwE typeMess
+
 
 -- these functions continue passing values onwards, like folds,
 -- but curry until two parameters are applied eg.
@@ -84,7 +99,8 @@ funcErr a b = callErr ("func " <> show a <> " " <> show b)
 anyVal :: [(String, PhageVal)]
 anyVal =
     concat $
-    [ [ ("= eq", equals) ]
+    [ [ ("= eq", equals)
+      , ("not !", notFunc)]
     , (fmap . mapSnd) booleyFunc
         [ ("& and", (&&))
         , ("| or", (||))
@@ -93,6 +109,8 @@ anyVal =
         equals = mkFunc 2 (\v t -> pure $ PBool $ func v t) where
             func [a, b] _ = a == b
             func (a : b : xs) t = a == b && func (b : xs) t
+
+        notFunc = unaryFunc (Just . truthy) PBool not
 
         booleyFunc = homogeneousBinFunc (Just . truthy) PBool
 

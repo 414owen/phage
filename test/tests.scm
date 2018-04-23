@@ -9,14 +9,26 @@
 (def tests
 	(quote (
 
+
+
+		// ----
 		// Core
+		// ----
+
+
+		// bools and sanity test
 
 		(true true)
 		(false false)
 
-		// check the core aliases are recognised
+
+		// core aliases
+
 		(false f)
-		(true t)
+		(t true)
+
+
+		// equality
 
 		((= 2 2) true)
 		((= 3 4) false)
@@ -24,19 +36,27 @@
 		((= 1 1 1 1 1) true)
 		((= 1 1 1 2 1) false)
 
-		// check expression nesting
+
+		// expression nesting
+
 		((eq 5 (+ 2 3)) true)
 		((eq 5 (+ 3 3)) false)
 
-		((& false false) false)
-		((& false true) false)
-		((& true false) false)
-		((& true true) true)
+
+		// boolean logic
 
 		((| false false) false)
 		((| false true) true)
 		((| true false) true)
 		((| true true) true)
+
+		((! t) f)
+		((! f) t)
+		((! ()) t)
+		((! 4) f)
+
+
+		// comparisons
 
 		((< 3 4) true)
 		((< 4 3) false)
@@ -53,6 +73,9 @@
 		((>= 3 4) false)
 		((>= 4 3) true)
 		((>= 4 4) true)
+
+
+		// arithmetic
 
 		((+ 0 0) 0)
 		((+ 1 1) 2)
@@ -82,18 +105,52 @@
 		((% (- 0 5) 2) 1)
 		((% 1000 410 28) 12)
 
+
+		// lists
+
 		((cons 1 ()) (quote (1)))
 		((cons 3 (list 4 5 6)) (quote (3 4 5 6)))
-
 		((car (list 3 4 5)) 3)
-
 		((cdr (list 3 4 5 6)) (quote (4 5 6)))
-
 		((cadadr (list (list 2 (list 4 5 6)))) (quote (5 6)))
+
+
+
+		// -------
+		// prelude
+		// -------
+
+
+		// boolean logic
+
+		((& f f) f)
+		((& f t) f)
+		((& t f) f)
+		((& t t) t)
+
+		((& t t t t f t t) f)
+		((& t t t t t t t) t)
+
+		((-> f f) t)
+		((-> f t) t)
+		((-> t f) f)
+		((-> t t) t)
+
+		((^ f f) f)
+		((^ f t) t)
+		((^ t f) t)
+		((^ t t) f)
+
+		((~= f f) t)
+		((~= f t) f)
+		((~= t f) f)
+		((~= t t) t)
+
+
+		// lists
 
 		((list 1 2 3) (quote (1 2 3)))
 		((list 1 2 3 (list 4 5) 6 7) (quote (1 2 3 (4 5) 6 7)))
-
 		((rev (list 1 2 3)) (list 3 2 1))
 		((map (+ 1) tlst) (list 2 3 4 5))
 		((sum tlst) 10)
@@ -101,7 +158,15 @@
 		((len tlst) 4)
 		((filter (< 2) tlst) (list 3 4))
 		((range 1 5 1) tlst)
+		((range 1 10 3) (list 1 4 7))
+		((range 10 0 (- 0 3)) (list 10 7 4 1))
+		((range 10 1 (- 0 3)) (list 10 7 4))
+		((append () ()) ())
+		((append tlst ()) tlst)
+		((append () tlst) tlst)
 		((append (list 1 2 3) (list 4 5 6)) (list 1 2 3 4 5 6))
+		((concat ()) ())
+		((concat (list tlst tlst)) (append tlst tlst))
 		((intersperse 0 tlst) (list 1 0 2 0 3 0 4))
 		((concat (list tlst tlst tlst)) (list 1 2 3 4 1 2 3 4 1 2 3 4))
 		((intercalate (list 0 5) (list tlst tlst)) (list 1 2 3 4 0 5 1 2 3 4))
@@ -111,6 +176,17 @@
 		((all (cons false tlst)) false)
 		((any tlst) true)
 		((any (list 0 false ())) false)
+
+
+		// pipe
+
+		(((pipe - (* 3) (+ 1)) 9 5 1) 10)
+		(((rpipe (+ 1) (* 3) -) 9 5 1) 10)
+
+
+		// misc
+
+		((do 1 2 3) 3)
 	)))
 
 (print "getting length of cases")
