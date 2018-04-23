@@ -17,6 +17,10 @@
 		((= 1 1 1 1 1) true)
 		((= 1 1 1 2 1) false)
 
+		// check the core aliases work
+		((eq 1 1) true)
+		((eq 1 2) false)
+
 		((& false false) false)
 		((& false true) false)
 		((& true false) false)

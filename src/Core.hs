@@ -15,6 +15,7 @@ import Safe
 import Parser
 import Interpreter
 import Safe
+import Data.Tuple.Lazy
 import Data.Map (insert)
 import Data.Maybe
 import Data.Monoid
@@ -23,6 +24,8 @@ import Text.Megaparsec
 
 typeMess = "wrong type supplied to function"
 
+-- these functions take the form (a -> b -> c)
+-- but if more arguments are passed in, they are ignored
 binFunc ::
        (PhageVal -> Maybe a)
     -> (PhageVal -> Maybe b)
@@ -37,6 +40,12 @@ binFunc fromA fromB toC fn = mkFunc 2 nf
             (_, Nothing) -> throwE $ typeMess
             (Just a, Just b) -> return $ toC $ fn a b
 
+-- these functions continue passing values onwards, like folds,
+-- but curry until two parameters are applied eg.
+-- (+)         -> function
+-- (+ 1)       -> function
+-- (+ 1 2)     -> 3
+-- (+ 1 2 3 4) -> 10
 homogeneousBinFunc :: Eq a =>
        (PhageVal -> Maybe a)
     -> (a -> PhageVal)
@@ -58,11 +67,6 @@ fromNum :: (PhageVal -> Maybe Integer)
 fromNum (PNum a) = Just a
 fromNum _ = Nothing
 
-mapSnd :: (a -> b) -> (c, a) -> (c, b)
-mapSnd fn (a, b) = (a, fn b)
-
-createOnInts = homogeneousBinFunc fromNum PNum
-
 mkFunc :: Int -> PhageFunc -> PhageVal
 mkFunc arity = PFunc arity [] mempty
 
@@ -73,13 +77,6 @@ truthy (PNum 0) = False
 truthy (PAtom "") = False
 truthy _ = True
 
-funcy :: PhageVal -> Bool
-funcy (PFunc _ _ _ _) = True
-funcy (PForm _ _) = True
-funcy _ = False
-
-fmapmapsnd = fmap . mapSnd
-
 callErr s = throwE ("Unexpected call to " <> s)
 formErr a b = callErr ("form " <> show a <> " " <> show b)
 funcErr a b = callErr ("func " <> show a <> " " <> show b)
@@ -87,8 +84,8 @@ funcErr a b = callErr ("func " <> show a <> " " <> show b)
 anyVal :: [(String, PhageVal)]
 anyVal =
     concat $
-    [ [ ("=", equals) ]
-    , concat $ fmap (\(f, s) -> fmap (\w -> (w, booleyFunc s)) (words f))
+    [ [ ("= eq", equals) ]
+    , (fmap . mapSnd) booleyFunc
         [ ("& and", (&&))
         , ("| or", (||))
         ]
@@ -101,16 +98,16 @@ anyVal =
 
 comparison :: [(String, PhageVal)]
 comparison =
-    fmapmapsnd (binFunc fromNum fromNum PBool)
-        [ ("<", (<))
-        , (">", (>))
-        , ("<=", (<=))
-        , (">=", (>=))
+    (fmap . mapSnd) (binFunc fromNum fromNum PBool)
+        [ ("< lt", (<))
+        , ("> gt", (>))
+        , ("<= lte", (<=))
+        , (">= gte", (>=))
         ]
 
 arith :: [(String, PhageVal)]
 arith =
-    fmapmapsnd (homogeneousBinFunc fromNum PNum)
+    (fmap . mapSnd) (homogeneousBinFunc fromNum PNum)
         [ ("+", (+))
         , ("-", (-))
         , ("*", (*))
@@ -119,11 +116,10 @@ arith =
         , ("%", mod)
         ]
 
-consts :: [(String, PhageVal)]
-consts =
-    [ ("zero", PNum 0)
-    , ("true", PBool True)
-    , ("false", PBool False)
+bools :: [(String, PhageVal)]
+bools =
+    [ ("true t", PBool True)
+    , ("false f", PBool False)
     ]
 
 cardrs = concat $ fmap gen [1..6]
@@ -134,7 +130,7 @@ cardrs = concat $ fmap gen [1..6]
 
 lists :: [(String, PhageVal)]
 lists = concat
-    [ fmapmapsnd (uncurry mkFunc)
+    [ (fmap . mapSnd) (uncurry mkFunc)
       [ ("cons", (2, consFunc)) ]
     , fmap mkardr cardrs
     ] where
@@ -153,7 +149,7 @@ lists = concat
 
 metaFuncs :: [(String, PhageVal)]
 metaFuncs =
-    fmapmapsnd (uncurry mkFunc)
+    (fmap . mapSnd) (uncurry mkFunc)
     [ ("arity", (1, arFunc))
     , ("apply", (2, apFunc))
     ] where
@@ -172,16 +168,16 @@ metaFuncs =
 
 specials :: [(String, PhageVal)]
 specials =
-    fmapmapsnd (uncurry PForm)
+    (fmap . mapSnd) (uncurry PForm)
     [ ("if", (3, ifFunc))
     , ("cond", (0, condFunc))
     , ("\\", (2, funcFunc))
-    , ("def", (2, def))
+    , ("def define", (2, def))
     , ("let", (1, letFunc))
-    , ("fun", (2, namedFun))
+    , ("fun fn", (2, namedFun))
     , ("eval", (1, evalFunc))
-    , ("import", (1, importFunc))
-    , ("quote", (1, quoteFunc))
+    , ("import require using", (1, importFunc))
+    , ("quote data", (1, quoteFunc))
     ] where
         quoteFunc :: PhageForm
         quoteFunc [a] t = pure $ (a, t)
@@ -258,14 +254,15 @@ allVals :: [(String, PhageVal)]
 allVals = concat
     [ arith
     , comparison
-    , consts
+    , bools
     , specials
     , lists
     , anyVal
     , metaFuncs
     , [ ("print", mkFunc 0 prnt)
       ]
-    ] where
+    ] >>= \(ss, val) -> (, val) <$> words ss
+    where
         prnt :: PhageFunc
         prnt lst t =
             ret ((mapM (putStr . (<> " ") . show) lst) >> putStrLn "")
