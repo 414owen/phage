@@ -11,15 +11,22 @@
 
 		// Core
 
+		(true true)
+		(false false)
+
+		// check the core aliases are recognised
+		(false f)
+		(true t)
+
 		((= 2 2) true)
 		((= 3 4) false)
 		((= 2 true) false)
 		((= 1 1 1 1 1) true)
 		((= 1 1 1 2 1) false)
 
-		// check the core aliases work
-		((eq 1 1) true)
-		((eq 1 2) false)
+		// check expression nesting
+		((eq 5 (+ 2 3)) true)
+		((eq 5 (+ 3 3)) false)
 
 		((& false false) false)
 		((& false true) false)
@@ -112,23 +119,23 @@
 
 (print "running tests")
 
-(fun run (t)
-	(fun runrec (n a t)
+(fun run (tests)
+	(fun runrec (n a test)
 		(print n)
-		(if (= t ())
+		(if (= test ())
 			a
 			(runrec
 				(+ 1 n)
-				(+ a (if (= (eval (caar t)) (eval (cadar t)))
+				(+ a (if (= (eval (caar test)) (eval (cadar test)))
 					1
 					(do
-					  (print (car t))
-					  (print (eval (caar t)))
-					  (print (eval (cadar t)))
+					  (print (car test))
+					  (print (eval (caar test)))
+					  (print (eval (cadar test)))
 					  0)
 				))
-				(cdr t))))
-	(runrec 0 0 t))
+				(cdr test))))
+	(runrec 0 0 tests))
 
 (def passed (run tests))
 (print)
