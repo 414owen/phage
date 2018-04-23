@@ -14,6 +14,7 @@ import SymTab
 import Safe
 import Parser
 import Interpreter
+import Safe
 import Data.Map (insert)
 import Data.Maybe
 import Data.Monoid
@@ -74,8 +75,8 @@ fmapmapsnd = fmap . mapSnd
 err = ExceptT . return . Left
 
 callErr s = err ("Unexpected call to " <> s)
-formErr = callErr . ("form " <>)
-funcErr = callErr . ("func " <>)
+formErr a b = callErr ("form " <> show a <> " " <> show b)
+funcErr a b = callErr ("func " <> show a <> " " <> show b)
 
 arith :: [(String, PhageVal)]
 arith =
@@ -128,13 +129,13 @@ lists = concat
     , fmap mkardr cardrs
     ] where
         consFunc [x, PList xs] _ = pure $ PList (x : xs)
-        consFunc _ _ = funcErr "cons"
+        consFunc v _ = funcErr "cons" v
 
         mkardrFunc :: String -> String -> PhageFunc
         mkardrFunc n ('a' : rst) [PList (x : xs)] t = mkardrFunc n rst [x] t
         mkardrFunc n ('d' : rst) [PList (x : xs)] t = mkardrFunc n rst [PList xs] t
         mkardrFunc _ "r" [val] _ = pure val
-        mkardrFunc name _ l _ = formErr (name <> ": " <> show l)
+        mkardrFunc name _ l v = formErr (name <> ": " <> show l) v
 
         mkardr :: String -> (String, PhageVal)
         mkardr adr = let name = 'c' : adr in
@@ -150,11 +151,25 @@ metaFuncs =
         arFunc [PFunc ar ps _ _] t = pure $
             PNum $ toInteger $ max (ar - (length ps)) 0
         arFunc [PForm ar _] t = pure $ PNum $ toInteger $ ar
-        arFunc _ _ = funcErr "arity"
+        arFunc v _ = funcErr "arity" v
 
         apFunc :: PhageFunc
-        apFunc [PFunc _ ps t fn, PList args] _ = fn (reverse ps <> args) t
-        apFunc _ _ = funcErr "apply"
+        apFunc [PForm ar fn, PList args] tab =
+            fst <$> (apply tab (PForm ar fn) args)
+        apFunc [PFunc ar bound tab fn, PList args] _ =
+            fst <$> (apply tab (PFunc ar bound tab fn) args)
+        apFunc v _ = funcErr "apply" v
+
+
+quoter (PList a) = PList $ quoter <$> a
+quoter a = a
+
+quoteFunc :: PhageForm
+quoteFunc [a] t = pure $ (quoter a, t)
+quoteFunc v _ = formErr "quote" v
+
+quote :: PhageVal
+quote = PForm 1 quoteFunc
 
 specials :: [(String, PhageVal)]
 specials =
@@ -165,7 +180,6 @@ specials =
     , ("def", (2, def))
     , ("let", (1, letFunc))
     , ("fun", (2, namedFun))
-    , ("quote", (1, quoteFunc))
     , ("eval", (1, evalFunc))
     , ("import", (1, importFunc))
     ] where
@@ -176,18 +190,11 @@ specials =
                 imp s = case parse parseAst fname s of
                     Left s -> return $ Left $ show s
                     Right ast -> runExceptT $ interpret t ast
-        importFunc _ _ = formErr "import"
-
-        quoter (PList a) = PList $ quoter <$> a
-        quoter a = a
-
-        quoteFunc :: PhageForm
-        quoteFunc [a] t = pure $ (quoter a, t)
-        quoteFunc _ _ = formErr "quote"
+        importFunc v _ = formErr "import" v
 
         evalFunc :: PhageForm
         evalFunc [a] t = eval t a >>= \(v, t) -> eval t v
-        evalFunc _ _ = formErr "eval"
+        evalFunc v _ = formErr "eval" v
 
         param (PAtom str) = pure str
         param thing = throwE $ "Invalid parameter name: " <> show thing
@@ -207,26 +214,26 @@ specials =
                         (newTab (zip srefs (repeat f)) tab)
                         (runFunc blk strs)
                 in  pure f
-        funcreate _ _ _ = formErr "function"
+        funcreate v _ _ = formErr "function" v
 
         -- named functions support recursion
         namedFun :: PhageForm
         namedFun (PAtom name : params) tab = funcreate params tab [name]
             >>= \f -> pure (f, insert name f tab)
-        namedFunc _ _ = formErr "fun"
+        namedFunc v _ = formErr "fun" v
 
         letFunc' :: PhageVal -> PhageForm
         letFunc' res [] t = pure (res, t)
         letFunc' res (PList [PAtom str, val] : others) t = eval t val
             >>= \(val, ntab) -> letFunc' val others (insert str val t)
-        letFunc' _ a _ = formErr "let"
+        letFunc' _ v _ = formErr "let" v
 
         letFunc :: PhageForm
         letFunc = letFunc' (PList [])
 
         def :: PhageForm
         def [PAtom a, b] tab = letFunc [PList [PAtom a, b]] tab
-        def a _ = formErr "def"
+        def v _ = formErr "def" v
 
         funcFunc :: PhageForm
         funcFunc params tab = (,tab) <$> funcreate params tab []
@@ -237,11 +244,11 @@ specials =
             >>= \(pred, t) -> if truthy pred
                 then eval tab val
                 else condFunc nodes tab
-        condFunc _ _ = formErr "cond"
+        condFunc v _ = formErr "cond" v
 
         ifFunc :: PhageForm
         ifFunc [a, b, c] t = condFunc [PList [a, b], PList [PNum 1, c]] t
-        ifFunc _ t = formErr "if"
+        ifFunc v _ = formErr "if" v
 
 allVals :: [(String, PhageVal)]
 allVals = concat
@@ -252,7 +259,9 @@ allVals = concat
     , lists
     , anyVal
     , metaFuncs
-    , [("print", mkFunc 0 prnt)]
+    , [ ("print", mkFunc 0 prnt)
+      , ("quote", quote)
+      ]
     ] where
         prnt :: PhageFunc
         prnt lst t =

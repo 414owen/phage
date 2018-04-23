@@ -14,14 +14,14 @@ import Data.Monoid
 import Control.Monad.Trans.Except
 
 type PhageFunc =
-            [PhageVal]
-        ->  SymTab PhageVal
-        ->  ExceptT PhageErr IO PhageVal
+           [PhageVal]
+        -> SymTab PhageVal
+        -> ExceptT PhageErr IO PhageVal
 
 type PhageForm =
-            [PhageVal]
-        ->  SymTab PhageVal
-        ->  ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+           [PhageVal]
+        -> SymTab PhageVal
+        -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
 
 data PhageVal
     = PNum Integer

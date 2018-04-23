@@ -3,6 +3,7 @@ module Interpreter
     , eval
     , block
     , tr
+    , apply
     ) where
 
 import Err
@@ -31,28 +32,41 @@ type Acc = ExceptT PhageErr IO ([PhageVal], SymTab PhageVal)
 
 -- in a block, symtab updates carry through the scope they are defined in
 block :: SymTab PhageVal -> [PhageVal] -> ExceptT PhageErr IO [PhageVal]
-block tab blk = reverse . fst <$> foldM folder ([], tab) blk
-    where
-        folder :: ([PhageVal], SymTab PhageVal) -> PhageVal -> Acc
-        folder (acc, tab) node = eval tab node >>= \(v, t) -> pure (v:acc, t)
+block tab [] = pure []
+block tab (n:ns) = eval tab n >>= \(v, t) -> (v:) <$> block t ns
 
--- old version of block
-{- block tab [] = pure [] -}
-{- block tab (n:ns) = eval tab n >>= \(v, t) -> (v:) <$> block t ns -}
+apply ::
+    SymTab PhageVal
+    -> PhageVal   -- fn / form
+    -> [PhageVal] -- params
+    -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+apply tab (PFunc a p t f) ps =
+    case reduceFunc (PFunc a p t f) ps of
+        PFunc a p env f | a <= 0 -> (,tab) <$> f (reverse p) env
+        a -> return (a, tab)
+apply tab (PForm a f) ps | a <= length ps = f ps tab
+apply tab (PForm a f) ps = ExceptT $ return $ Left "Not enough params to form"
+apply tab a ps = ExceptT $ return $ Left
+     ("Tried to call a non-function: " <> show a)
 
-eval :: SymTab PhageVal -> PhageVal -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
-eval tab (PAtom str) = (,tab) <$> ExceptT (pure (lkp tab str))
-eval tab (PList (fname : params)) = eval tab fname
+realeval ::
+       SymTab PhageVal
+    -> PhageVal
+    -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+realeval tab (PAtom str) = (,tab) <$> ExceptT (pure (lkp tab str))
+realeval tab (PList (fname : params)) = eval tab fname
     >>= \(fn, ftab) -> case fn of
-        (PFunc a p t f) -> block tab params
-            >>= \ps -> case reduceFunc fn ps of
-                PFunc a p env f | a <= 0 -> (,tab) <$> f (reverse p) env
-                a -> return (a, tab)
-        (PForm a f) | a <= length params -> f params tab
-        (PForm a f) -> ExceptT $ return $ Left "Not enough params to form"
-        a -> ExceptT $ return $ Left
-             ("Tried to call a non-function: " <> show a)
-eval tab thing = return (thing, tab)
+        (PFunc a b c d) -> (block tab params) >>= apply tab (PFunc a b c d)
+        a -> apply tab a params
+realeval tab thing = return (thing, tab)
+
+eval :: SymTab PhageVal
+    -> PhageVal
+    -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+eval tab val = ExceptT $ runExceptT (realeval tab val)
+    >>= \res -> case res of
+        Left err -> fmap (const $ Left ("in " <> show val)) $ putStrLn err
+        Right res -> pure $ Right res
 
 interpret ::
     SymTab PhageVal

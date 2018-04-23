@@ -23,10 +23,8 @@
 (def init (dot rev (dot cdr rev)))
 (def all (fold true and))
 (def any (fold false or))
-
-(fun dot ()
-	 (def a (rev args))
-	 (pipe a))
+(def rpipe (pipe list rev (apply pipe)))
+(def dot rpipe)
 
 // do just returns its last parameter
 (fun do () (last args))
