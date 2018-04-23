@@ -21,39 +21,47 @@ import Data.Monoid
 import Control.Monad.Trans.Except
 import Text.Megaparsec
 
-typeMess :: Integer -> String -> PhageVal -> PhageErr
-typeMess n exp val = "Parameter " ++ show n ++ " has the wrong type,\
-    \ expecting '" ++ exp ++ "' but got '" ++ typeName val ++ "'"
+typeMess = "wrong type supplied to function"
 
-arityMess :: Int -> Int -> PhageErr
-arityMess a b = show a <> " arguments applied to function of arity " <> show b
-
--- create a binary function over phage values
-createBinFunc ::
-    (PhageVal -> Maybe a, String)
-    -> (PhageVal -> Maybe b, String)
+binFunc ::
+       (PhageVal -> Maybe a)
+    -> (PhageVal -> Maybe b)
     -> (c -> PhageVal)
     -> (a -> b -> c)
     -> PhageVal
-createBinFunc (fromA, aStr) (fromB, bStr) toC fn = mkFunc 2 nf
+binFunc fromA fromB toC fn = mkFunc 2 nf
     where
         nf :: PhageFunc
-        nf [a, b] tab = case (fromA a, fromB b) of
-            (Nothing, _) -> throwE $ typeMess 1 aStr a
-            (_, Nothing) -> throwE $ typeMess 2 bStr b
+        nf (a : b : xs) tab = case (fromA a, fromB b) of
+            (Nothing, _) -> throwE $ typeMess
+            (_, Nothing) -> throwE $ typeMess
             (Just a, Just b) -> return $ toC $ fn a b
-        nf l _ = throwE $ arityMess 2 (length l)
+
+homogeneousBinFunc :: Eq a =>
+       (PhageVal -> Maybe a)
+    -> (a -> PhageVal)
+    -> (a -> a -> a)
+    -> PhageVal
+homogeneousBinFunc from to fn = mkFunc 2 func
+    where
+        func vals _ =
+            let fromvals = from <$> vals
+                valid = not $ any (== Nothing) fromvals
+                nvals = catMaybes fromvals
+            in
+                if valid
+                    then pure $ to $
+                        foldl (\a b -> fn a b) (head nvals) (tail nvals)
+                    else throwE typeMess
 
 fromNum :: (PhageVal -> Maybe Integer)
 fromNum (PNum a) = Just a
 fromNum _ = Nothing
 
-fromNumTup = (fromNum, "Number")
-
 mapSnd :: (a -> b) -> (c, a) -> (c, b)
 mapSnd fn (a, b) = (a, fn b)
 
-createOnTwoInts = createBinFunc fromNumTup fromNumTup
+createOnInts = homogeneousBinFunc fromNum PNum
 
 mkFunc :: Int -> PhageFunc -> PhageVal
 mkFunc arity = PFunc arity [] mempty
@@ -72,42 +80,44 @@ funcy _ = False
 
 fmapmapsnd = fmap . mapSnd
 
-err = ExceptT . return . Left
-
-callErr s = err ("Unexpected call to " <> s)
+callErr s = throwE ("Unexpected call to " <> s)
 formErr a b = callErr ("form " <> show a <> " " <> show b)
 funcErr a b = callErr ("func " <> show a <> " " <> show b)
 
-arith :: [(String, PhageVal)]
-arith =
-    fmapmapsnd (createOnTwoInts PNum)
-        [ ("+", (+))
-        , ("-", (-))
-        , ("*", (*))
-        , ("/", div)
-        , ("%", mod)
+anyVal :: [(String, PhageVal)]
+anyVal =
+    concat $
+    [ [ ("=", equals) ]
+    , concat $ fmap (\(f, s) -> fmap (\w -> (w, booleyFunc s)) (words f))
+        [ ("& and", (&&))
+        , ("| or", (||))
         ]
+    ] where
+        equals = mkFunc 2 (\v t -> pure $ PBool $ func v t) where
+            func [a, b] _ = a == b
+            func (a : b : xs) t = a == b && func (b : xs) t
+
+        booleyFunc = homogeneousBinFunc (Just . truthy) PBool
 
 comparison :: [(String, PhageVal)]
 comparison =
-    fmapmapsnd (createOnTwoInts PBool)
+    fmapmapsnd (binFunc fromNum fromNum PBool)
         [ ("<", (<))
         , (">", (>))
         , ("<=", (<=))
         , (">=", (>=))
         ]
 
-anyVal :: [(String, PhageVal)]
-anyVal =
-    concat $
-    fmap (\(f, s) -> fmap (\w -> (w, mkFunc 2 $ binFunc PBool s)) (words f))
-    [ ("= eq", (==))
-    , ("& and", andFunc)
-    , ("| or", orFunc)
-    ] where
-        binFunc constr f [a, b] t = pure $ constr $ f a b
-        andFunc a b = truthy a && truthy b
-        orFunc a b = truthy a || truthy b
+arith :: [(String, PhageVal)]
+arith =
+    fmapmapsnd (homogeneousBinFunc fromNum PNum)
+        [ ("+", (+))
+        , ("-", (-))
+        , ("*", (*))
+        -- TODO add exceptions on divide-by-zero
+        , ("/", div)
+        , ("%", mod)
+        ]
 
 consts :: [(String, PhageVal)]
 consts =
@@ -239,7 +249,7 @@ specials =
         funcFunc params tab = (,tab) <$> funcreate params tab []
 
         condFunc :: PhageForm
-        condFunc [] tab = ExceptT $ return $ Left "Condition not met"
+        condFunc [] tab = throwE "condition not met"
         condFunc (PList [pred, val] : nodes) tab = eval tab pred
             >>= \(pred, t) -> if truthy pred
                 then eval tab val
