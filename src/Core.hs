@@ -170,17 +170,6 @@ metaFuncs =
             fst <$> (apply tab (PFunc ar bound tab fn) args)
         apFunc v _ = funcErr "apply" v
 
-
-quoter (PList a) = PList $ quoter <$> a
-quoter a = a
-
-quoteFunc :: PhageForm
-quoteFunc [a] t = pure $ (quoter a, t)
-quoteFunc v _ = formErr "quote" v
-
-quote :: PhageVal
-quote = PForm 1 quoteFunc
-
 specials :: [(String, PhageVal)]
 specials =
     fmapmapsnd (uncurry PForm)
@@ -192,7 +181,12 @@ specials =
     , ("fun", (2, namedFun))
     , ("eval", (1, evalFunc))
     , ("import", (1, importFunc))
+    , ("quote", (1, quoteFunc))
     ] where
+        quoteFunc :: PhageForm
+        quoteFunc [a] t = pure $ (a, t)
+        quoteFunc v _ = formErr "quote" v
+
         importFunc :: PhageForm
         importFunc [PStr fname] t =
             ExceptT $ readFile fname >>= imp
@@ -270,7 +264,6 @@ allVals = concat
     , anyVal
     , metaFuncs
     , [ ("print", mkFunc 0 prnt)
-      , ("quote", quote)
       ]
     ] where
         prnt :: PhageFunc
