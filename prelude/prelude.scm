@@ -40,6 +40,11 @@
 		(rec (list (apply (car lst) params)) (cdr lst))))
 	(\() (piperec args funs)))
 
+(fun choose (fn) (homBinFunc (\(a b) (if (fn a b) a b))))
+(def min (choose <))
+(fun minl (l) (fold (car l) min l))
+(def max (choose >))
+(fun maxl (l) (fold (car l) max l))
 (def rev (fold () cons))
 (def last (dot car rev))
 (def init (dot rev (dot cdr rev)))
