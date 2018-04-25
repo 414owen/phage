@@ -51,11 +51,9 @@ $ stack exec phage               # run the repl
 $ stack exec phage -- <program>  # run a phage program
 ```
 
-For examples of things that are possible
-
 ## Examples
 
-```
+```scheme
 (import "prelude/prelude.scm")
 
 // ---
@@ -66,7 +64,6 @@ For examples of things that are possible
 "Hello, World!" // Strings
 print           // Functions
 true            // Booleans
-
 
 // ---
 // Function Application
@@ -81,6 +78,9 @@ true            // Booleans
 
 // `hello` takes two parameters, prints them, then returns their sum
 (fun hello (a b) (print a b) (+ a b))
+
+// Anonymous functions are created with `\`
+(\ (a b c) (+ a (- b c)))
 
 // ---
 // Currying / Partial Application
@@ -103,16 +103,51 @@ true            // Booleans
 (def fact (pipe upto prod))
 
 // ---
+// Lists
+// ---
+
+//       |-create list-|
+(def lst (quote (1 2 3)))
+
+// get first element
+(car lst)    // 1
+
+// get all other elements
+(cdr lst)    // (2 3)
+
+// get second element
+(cdar lst)   // 2
+
+// third
+(cddar lst)  // 3
+
+// let's operate on some nested lists
+(def lst (quote ((1 (2 3) 4) 5 6)))
+
+// head of head of list
+(caar lst)   // 1
+
+(cadar lst)  // (2 3)
+(cadadr lst) // (3)
+
+// etc.
+
+// There are other functions defined in the prelude, such as len, fold, sum,
+// prod, choose, minl, maxl, rev, last, all, any, filter, etc. I recommend
+// reading their implementation in `prelude/prelude.scm`. They're all very
+// simple
+
+// ---
 // Data Pipe
 // ---
 
 // Data pipes are similar to composition in functional languages, except that
-pipes create functions that can take more than one argument.
+// pipes create functions that can take more than one argument.
 
 (def a (pipe (+ 1) (* 3) (+ 4)))
 (a 5)        // 22
 
-// (pipe) takes a list of functions, and returns a function.
+// `pipe` takes a list of functions, and returns a function.
 // in the example above, `a` applies `5` to `(+ 1)` to get `6`,
 // then applies `6` to `(* 3)`, and so on, returning the result. 
 
@@ -129,6 +164,34 @@ pipes create functions that can take more than one argument.
 // I will leave it as an exercise to the user to figure out how this works.
 // `pipe`, `list` and `rev` are defined in the prelude, and `apply` is defined
 // in core (src/Core.hs)
+
+// ---
+// Variadic Functions
+// ---
+
+// Every function is implicitly passed a list called `args`, and a list called
+// `rest`. Let's make an example.
+
+// |-----create function-----| |-call-|
+  ((\ (a b) args rest (- a b)) 1 2 3 4)
+//           |     |
+//    (1 2 3 4)   (3 4)
+
+// Here we see that `args` is passed a list of all the arguments applied to the
+// function, and `rest` is passed all the arguments that weren't covered by the
+// explicitly referenced ones (a and b).
+
+// ---
+// Recursive Lambdas
+// ---
+
+// Anonymous functions are passed themselves through the variables `rec` and
+// `this`. Here's an example.
+
+(def sum (\(lst) (if (= lst ()) 0 (+ (car lst) (rec (cdr lst))))))
+
+// Of course, the better way to create the sum function is:
+(def sum (fold 0 +))
 ```
 
 For more extensive examples, see my [tests](test/eq.scm), which are written in Phage.

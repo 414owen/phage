@@ -227,7 +227,7 @@ specials =
 
         funcreate (PList strs : blk) tab selfrefs = mapM param strs
             >>= \strs ->
-                let srefs = selfrefs <> ["rec"]
+                let srefs = selfrefs <> ["rec this"]
                     f = PFunc (length strs) []
                         (newTab (zip srefs (repeat f)) tab)
                         (runFunc blk strs)
