@@ -190,7 +190,7 @@ specials =
     [ ("if", (3, ifFunc))
     , ("cond", (0, condFunc))
     , ("\\", (2, funcFunc))
-    , ("def define", (2, def))
+    , ("def var define", (2, def))
     , ("let", (1, letFunc))
     , ("fun fn", (2, namedFun))
     , ("eval", (1, evalFunc))

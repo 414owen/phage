@@ -1,143 +1,135 @@
 # The Phage Programming Language
 
+Phage is a functional, syntactically pure, interpreted programming language.
+It aims to provide maximum expressivity, excellent support for metaprogramming,
+and be 'hackable'.
+
+## Features
+
+### Redefine Everything
+
+Phage has no keywords (you can redefine `if`, `true`, and `def` if you want). This is
+because `if`, `true`, and `def` are normal variables.
+
+```scheme
+(def a 1)    // a becomes 1
+(def d def)  // d becomes def
+(d b 4)      // b becomes 4
+(d def 4)    // def becomes 4
+(def c 5)    // broken! you can't call 4!
+```
+
+Because of this property, it's very easy to project your personal tastes onto phage. In fact, the core language defines variables `def`, `define` and `var` to do the exact same thing. There are also two other ways to define variables, that act differently, `fun`, and `let`.
+
+### Immutability
+
+Data is immutable. When redefine variables, everything up to that point will
+maintain the old reference. Here is an example (notice that when we redefine
+`a`, `pr` mainrtains the old reference):
+
+```scheme
+(def a 1)              // a becomes 1
+(print a)              // prints 1
+(fun pr () (print a))  // defines a function that prints a
+(def a 2)              // a becomes 2
+(print a)              // prints 2
+(pr)                   // prints 1
+```
+
+This is different from variable shadowing, which only occurs on nested scopes. In Phage, functions are bound to their contexts (everything defined above them), and ignore definitions below, and in more nested scopes than them.
+
+### Syntactic Purity
+
+* A program consists of many lists
+* Lists are evaluated by taking the first element (the `car`), which should be a function / special form, and applying the tail (the `cdr`) to it.
+
 ## Usage
 
 ```bash
-$ stack build        # to build
-$ stack exec phage   # run the repl
+$ stack build                    # to build
+$ stack exec phage               # run the repl
+$ stack exec phage -- <program>  # run a phage program
 ```
 
-## Syntax
-
-* A program consists of many calls
-* Calls consist of a function / special form and its arguments, surrounded by
-	brackets: `(<func> <param1> <param2> .. <paramN>)`
-
-## Prelude
-
-The prelude includes the following constants:
-
-```
-λ: ()
->> ()           // the empty list
-λ: true
->> true
-λ: false
->> false
-λ: zero
->> 0
-```
-
-The following functions:
-
-```
-λ: (+ 1 2)
->> 3
-λ: (- 1 2)
->> -1
-λ: (* 3 3)
->> 9
-λ: (/ 10 4)
->> 2
-λ: (% 10 3)
->> 1
-
-λ: (min 3 4)
->> 3
-λ: (max 3 4)
->> 4
-
-λ: (= 2 2)
->> true
-λ: (= 2 4)
->> false
-λ: (< 3 4)
->> true
-λ: (> 3 4)
->> false
-λ: (<= 3 3)
->> true
-λ: (>= 3 4)
->> false
-
-// prints (and returns) 5
-λ: (print 5)
->> 5
-
-// `list` creates a list from its parameters
-λ: (list 1 2 3)
->> (1 2 3)
-λ: (list 1 2 3 (list 4 5) 6 7)
->> (1 2 3 (4 5) 6 7)
-
-// `cons` adds an item to the start of a list
-λ: (cons 1 ())
->> (1)
-λ: (cons 3 (list 4 5 6))
->> (3 4 5 6)
-
-// `car` returns the first item in a list
-λ: (car (list 3 4 5))
->> 3
-
-// `cdr` returns every element except the first
-λ: (cdr (list 3 4 5 6))
->> (4 5 6)
-
-// there are other, similar functions, that
-// combine `car` and `cdr`. You can figure
-// out what they do by following the 'a's
-// and 'd's from left to right. For example:
-λ: (cadadr (list (list 2 (list 4 5 6))))
->> (5 6)
-
-// These functions are defined up to eight-character
-// functions such as `caaaddar` and `cdadaadr`.
-// If you are dealing with lists of higher dimensionality
-// than six, you're on your own.
-```
-
-The following special forms:
-
-```
-// define a function
-// also returns the function literal
-(fun alt (a b) (print a) (alt b a))
-
-// anonymous function
-(\ (a b c) (+ a (+ b c)))
-
-// create a variable binding
-// returns the variable
-(def a 3)
-
-// create many variable bindings
-// returns nil
-(let (a 3)
-	 (b 100))
-
-// (if <cond> <then> <else>)
-// returns the result of the taken branch
-(if (< a b)
-	(* b b)
-	(* a b))
-
-// cond takes the first element of each of its parameters
-// as a condition, returning the second if it's true
-(cond
-	(false 1)
-	((> 3 4) 2)
-	((= 3 3) 3)
-	(true 4))
-```
+For examples of things that are possible
 
 ## Examples
 
 ```
-// factorial
-(fun fact (a) (if (<= a 0) 1 (* a (fact (- a 1)))))
+(import "prelude/prelude.scm")
 
-// currying
+// ---
+// Data Types
+// ---
+
+42              // Numbers
+"Hello, World!" // Strings
+print           // Functions
+true            // Booleans
+
+
+// ---
+// Function Application
+// ---
+
+(+ 1 2)        // 3
+(+ 1 2 3 4 5)  // 15
+
+// ---
+// Function Definition
+// ---
+
+// `hello` takes two parameters, prints them, then returns their sum
+(fun hello (a b) (print a b) (+ a b))
+
+// ---
+// Currying / Partial Application
+// ---
+
 (def add3 (+ 3))
 (add3 5)            // 8
+
+// ---
+// Here are some ways to define factorial
+// ---
+
+// normal, recursive way
+(fun fact (a) (if (<= a 0) 1 (* a (fact (- a 1)))))
+
+// product of range
+(fun fact (a) (prod (upto a)))
+
+// data pipe
+(def fact (pipe upto prod))
+
+// ---
+// Data Pipe
+// ---
+
+// Data pipes are similar to composition in functional languages, except that
+pipes create functions that can take more than one argument.
+
+(def a (pipe (+ 1) (* 3) (+ 4)))
+(a 5)        // 22
+
+// (pipe) takes a list of functions, and returns a function.
+// in the example above, `a` applies `5` to `(+ 1)` to get `6`,
+// then applies `6` to `(* 3)`, and so on, returning the result. 
+
+// Because (+ 1) can take multiple arguments, the result of the pipe can too
+
+(a 2 3 5)    // 37
+
+// in `pipe` the data flows left-to-right, but in `rpipe` it flows
+// right-to-left
+// rpipe is defined in the prelude as so:
+
+(def rpipe (pipe list rev (apply pipe)))
+
+// I will leave it as an exercise to the user to figure out how this works.
+// `pipe`, `list` and `rev` are defined in the prelude, and `apply` is defined
+// in core (src/Core.hs)
 ```
+
+For more extensive examples, see my [tests](test/eq.scm), which are written in Phage.
+A lot of the functions tested are defined in the [prelude](prelude/prelude.scm).

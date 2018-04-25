@@ -69,10 +69,15 @@
 	(rev (fold () (\(el acc)
 		(if (fn el) (cons el acc) acc)) lst)))
 
-(fun range (start end step)
+(fun caror (el lst) (if (= lst ()) el (car lst)))
+
+(fun range (start end)
+	(def step (caror 1 rest))
 	(def fin (if (> step 0) >= <=))
 	(if (fin start end) ()
 		(cons start (range (+ start step) end step))))
+
+(def upto (pipe (+ 1) (range 1)))
 
 (fun append (a b)
 	 (if (= a ()) b (cons (car a) (append (cdr a) b))))
