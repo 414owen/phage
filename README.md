@@ -134,8 +134,8 @@ true            // Booleans
 
 // There are other functions defined in the prelude, such as len, fold, sum,
 // prod, choose, minl, maxl, rev, last, all, any, filter, etc. I recommend
-// reading their implementation in `prelude/prelude.scm`. They're all very
-// simple
+// reading their implementation in `prelude/prelude.scm`.
+// They're all very simple
 
 // ---
 // Data Pipe
