@@ -1,12 +1,13 @@
 module Val
     ( PhageVal(..)
+    , SymTab(..)
+    , newTab
     , typeName
     , PhageFunc
     , PhageForm
     ) where
 
 import Err
-import SymTab
 import Text.Show.Functions
 import Data.Map
 import Data.List
@@ -15,13 +16,13 @@ import Control.Monad.Trans.Except
 
 type PhageFunc =
            [PhageVal]
-        -> SymTab PhageVal
+        -> SymTab
         -> ExceptT PhageErr IO PhageVal
 
 type PhageForm =
            [PhageVal]
-        -> SymTab PhageVal
-        -> ExceptT PhageErr IO (PhageVal, SymTab PhageVal)
+        -> SymTab
+        -> ExceptT PhageErr IO (PhageVal, SymTab)
 
 data PhageVal
     = PNum Integer
@@ -30,8 +31,14 @@ data PhageVal
     | PList [PhageVal]
     | PBool Bool
     | PStr String
-    | PFunc Int [PhageVal] (SymTab PhageVal) PhageFunc
+    | PFunc Int [PhageVal] (SymTab) PhageFunc
+    -- TODO add function details to form, and delete functions
     | PForm Int PhageForm
+
+type SymTab = Map String PhageVal
+
+newTab :: [(String, PhageVal)] -> SymTab -> SymTab
+newTab vs tab = Prelude.foldl (\m (k, v) -> Data.Map.insert k v m) tab vs
 
 spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = intercalate space (show <$> els)

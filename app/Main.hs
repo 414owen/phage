@@ -3,7 +3,6 @@ module Main where
 import Val
 import Parser
 import Interpreter
-import SymTab
 import Core
 import Data.List
 import Data.Char
@@ -25,7 +24,7 @@ getAst fname src = case parse parseAst fname src of
         [] -> Left ""
         _ -> Right ast
 
-run :: Bool -> SymTab PhageVal -> String -> String -> IO (SymTab PhageVal)
+run :: Bool -> SymTab -> String -> String -> IO (SymTab)
 run repl tab fname source = case (repl, getAst fname source) of
     (_, Left e) -> const tab <$> putStr e
     (True, Right (x : y : xs)) -> const tab <$> putStrLn
@@ -48,7 +47,7 @@ repl
     >>= return . any (isInfixOf "UTF" . map toUpper) . catMaybes
     >>= rec core
     where
-        rec :: SymTab PhageVal -> Bool -> IO ()
+        rec :: SymTab -> Bool -> IO ()
         rec tab unicode
             =   putStr ((if unicode then "\x03BB:" else ">") <> " ")
             >>  hFlush stdout

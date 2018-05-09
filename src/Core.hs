@@ -10,7 +10,6 @@ module Core
 
 import Err
 import Val
-import SymTab
 import Safe
 import Parser
 import Interpreter
@@ -289,5 +288,5 @@ allVals = concat
         ret :: IO a -> b -> ExceptT PhageErr IO b
         ret a b = ExceptT $ const (Right b) <$> a
 
-core :: SymTab PhageVal
+core :: SymTab
 core = newTab allVals mempty
