@@ -1,9 +1,9 @@
 module Val
     ( PhageVal(..)
-    , SymTab(..)
+    , SymTab
+    , PhageRes
     , newTab
     , typeName
-    , PhageFunc
     , PhageForm
     ) where
 
@@ -11,18 +11,18 @@ import Err
 import Text.Show.Functions
 import Data.Map
 import Data.List
+import Data.Maybe
 import Data.Monoid
 import Control.Monad.Trans.Except
 
-type PhageFunc =
-           [PhageVal]
-        -> SymTab
-        -> ExceptT PhageErr IO PhageVal
+type PhageRes = ExceptT PhageErr IO (PhageVal, SymTab)
 
 type PhageForm =
            [PhageVal]
+        -- caller environment
         -> SymTab
-        -> ExceptT PhageErr IO (PhageVal, SymTab)
+        -- returns a result, and a new caller environment
+        -> PhageRes
 
 data PhageVal
     = PNum Integer
@@ -31,9 +31,15 @@ data PhageVal
     | PList [PhageVal]
     | PBool Bool
     | PStr String
-    | PFunc Int [PhageVal] (SymTab) PhageFunc
-    -- TODO add function details to form, and delete functions
-    | PForm Int PhageForm
+    -- arity, bound params, bound env, form
+    | PForm
+      { arity   :: Int
+      , bound   :: [PhageVal]
+      , paramap :: SymTab -> PhageVal -> PhageRes
+      , form    :: PhageForm
+      , name    :: Maybe String
+      , func    :: Bool
+      }
 
 type SymTab = Map String PhageVal
 
@@ -60,9 +66,10 @@ instance Show PhageVal where
     show (PBool True)     = "true"
     show (PBool False)    = "false"
     show (PList els)      = "(" <> spacedShow " " els <> ")"
-    show (PForm _ _)      = "<form>"
-    show (PFunc a p s fn) = "<func | arity: " <> show a <>
-        ", bound params: [" <> spacedShow ", " p <> "]>"
+    show (PForm {func = func, arity = arity, bound = params, name = name}) =
+        "<" <> (if func then "func" else "form") <>
+        (fromMaybe "" (fmap (" "<>) name)) <> " | arity: " <>
+        show arity <> ", bound params: " <> (show $ length params) <> ">"
 
 typeName :: PhageVal -> String
 typeName (PNum _)        = "num"
@@ -70,5 +77,4 @@ typeName (PAtom _)       = "atom"
 typeName (PList [])      = "nil"
 typeName (PList _)       = "list"
 typeName (PBool _)       = "bool"
-typeName PFunc{}         = "func"
-typeName (PForm _ _)     = "form"
+typeName (PForm{})     = "form"

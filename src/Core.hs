@@ -23,6 +23,24 @@ import Text.Megaparsec
 
 typeMess = "wrong type supplied to function"
 
+type PhageFuncRes = ExceptT PhageErr IO PhageVal
+type PhageFunc = [PhageVal] -> SymTab -> PhageFuncRes
+type SimFunc = [PhageVal] -> PhageFuncRes
+
+quoteFunc :: PhageForm
+quoteFunc [a] t = pure $ (a, t)
+quoteFunc v _ = formErr v
+
+defForm = PForm 0 [] (\t v -> pure (v, t)) quoteFunc Nothing False
+
+mkBoundFunc :: Int -> PhageFunc -> SymTab -> Maybe String -> PhageVal
+mkBoundFunc arity fn env name = PForm arity [] eval
+        (\ps c -> (, c) <$> fn ps env) name True
+
+mkFunc :: Int -> PhageFunc -> PhageVal
+mkFunc arity fn = mkBoundFunc arity fn mempty Nothing
+
+mkSimFunc ar fn = mkFunc ar (\ps tb -> fn ps)
 
 -- these functions apply to their first argument, and
 -- ignore subsequent arguments
@@ -46,10 +64,10 @@ binFunc ::
     -> (c -> PhageVal)
     -> (a -> b -> c)
     -> PhageVal
-binFunc fromA fromB toC fn = mkFunc 2 nf
+binFunc fromA fromB toC fn = mkSimFunc 2 nf
     where
-        nf :: PhageFunc
-        nf (a : b : xs) _ = case (fromA a, fromB b) of
+        nf :: SimFunc
+        nf (a : b : xs) = case (fromA a, fromB b) of
             (Just a, Just b) -> return $ toC $ fn a b
             _ -> throwE typeMess
 
@@ -65,9 +83,9 @@ homogeneousBinFunc :: Eq a =>
     -> (a -> PhageVal)
     -> (a -> a -> a)
     -> PhageVal
-homogeneousBinFunc from to fn = mkFunc 2 func
+homogeneousBinFunc from to fn = mkSimFunc 2 func
     where
-        func vals _ =
+        func vals =
             let fromvals = from <$> vals
                 valid = not $ any (== Nothing) fromvals
                 nvals = catMaybes fromvals
@@ -77,12 +95,10 @@ homogeneousBinFunc from to fn = mkFunc 2 func
                         foldl (\a b -> fn a b) (head nvals) (tail nvals)
                     else throwE typeMess
 
+
 fromNum :: (PhageVal -> Maybe Integer)
 fromNum (PNum a) = Just a
 fromNum _ = Nothing
-
-mkFunc :: Int -> PhageFunc -> PhageVal
-mkFunc arity = PFunc arity [] mempty
 
 truthy :: PhageVal -> Bool
 truthy (PList []) = False
@@ -91,18 +107,22 @@ truthy (PNum 0) = False
 truthy (PAtom "") = False
 truthy _ = True
 
-callErr s = throwE ("Unexpected call to " <> s)
-formErr a b = callErr ("form " <> show a <> " " <> show b)
-funcErr a b = callErr ("func " <> show a <> " " <> show b)
+callErr a b = throwE ("Unexpected call to " <> a <> ": " <> show b)
+formErr :: Show a => a -> ExceptT String IO b
+formErr = callErr "form"
+funcErr = callErr "func"
+
+flat :: [([String], a)] -> [(String, a)]
+flat = concat . fmap (\(ns, v) -> (, v) <$> ns)
 
 anyVal :: [(String, PhageVal)]
 anyVal =
     concat $
-    [ [ ("= eq", equals)
-      , ("not !", notFunc)]
+    [ [ ("=", equals)
+      , ("!", notFunc)]
     , (fmap . mapSnd) booleyFunc
-        [ ("& and", (&&))
-        , ("| or", (||))
+        [ ("&", (&&))
+        , ("|", (||))
         ]
     ] where
         equals = mkFunc 2 (\v t -> pure $ PBool $ func v t) where
@@ -116,10 +136,10 @@ anyVal =
 comparison :: [(String, PhageVal)]
 comparison =
     (fmap . mapSnd) (binFunc fromNum fromNum PBool)
-        [ ("< lt", (<))
-        , ("> gt", (>))
-        , ("<= lte", (<=))
-        , (">= gte", (>=))
+        [ ("<", (<))
+        , (">", (>))
+        , ("<=", (<=))
+        , (">=", (>=))
         ]
 
 arith :: [(String, PhageVal)]
@@ -135,8 +155,8 @@ arith =
 
 bools :: [(String, PhageVal)]
 bools =
-    [ ("true t", PBool True)
-    , ("false f", PBool False)
+    [ ("true", PBool True)
+    , ("false", PBool False)
     ]
 
 cardrs = concat $ fmap gen [1..6]
@@ -151,14 +171,14 @@ lists = concat
       [ ("cons", (2, consFunc)) ]
     , fmap mkardr cardrs
     ] where
-        consFunc [x, PList xs] _ = pure $ PList (x : xs)
-        consFunc v _ = funcErr "cons" v
+        consFunc (x : PList xs : _) _ = pure $ PList (x : xs)
+        consFunc v _ = funcErr v
 
         mkardrFunc :: String -> String -> PhageFunc
         mkardrFunc n ('a' : rst) [PList (x : xs)] t = mkardrFunc n rst [x] t
         mkardrFunc n ('d' : rst) [PList (x : xs)] t = mkardrFunc n rst [PList xs] t
         mkardrFunc _ "r" [val] _ = pure val
-        mkardrFunc name _ l v = formErr (name <> ": " <> show l) v
+        mkardrFunc _ _ l v = formErr v
 
         mkardr :: String -> (String, PhageVal)
         mkardr adr = let name = 'c' : adr in
@@ -166,52 +186,42 @@ lists = concat
 
 metaFuncs :: [(String, PhageVal)]
 metaFuncs =
-    (fmap . mapSnd) (uncurry mkFunc)
-    [ ("arity", (1, arFunc))
-    , ("apply", (2, apFunc))
+    [ ("arity", mkFunc 1 arFunc)
+    , ("apply", defForm {arity=2, form=apFunc, paramap=eval})
     ] where
         arFunc :: PhageFunc
-        arFunc [PFunc ar ps _ _] t = pure $
-            PNum $ toInteger $ max (ar - (length ps)) 0
-        arFunc [PForm ar _] t = pure $ PNum $ toInteger $ ar
-        arFunc v _ = funcErr "arity" v
+        arFunc (PForm{arity=ar} : _) _ = pure $ PNum $ toInteger $ ar
 
-        apFunc :: PhageFunc
-        apFunc [PForm ar fn, PList args] tab =
-            fst <$> (apply tab (PForm ar fn) args)
-        apFunc [PFunc ar bound tab fn, PList args] _ =
-            fst <$> (apply tab (PFunc ar bound tab fn) args)
-        apFunc v _ = funcErr "apply" v
+        apFunc :: PhageForm
+        apFunc (f@PForm{} : PList args : xs) tab =
+            apply tab f args
+        apFunc v _ = funcErr v
 
 specials :: [(String, PhageVal)]
 specials =
-    (fmap . mapSnd) (uncurry PForm)
-    [ ("if", (3, ifFunc))
-    , ("cond", (0, condFunc))
-    , ("\\", (2, funcFunc))
-    , ("def var define", (2, def))
-    , ("let", (1, letFunc))
-    , ("fun fn", (2, namedFun))
-    , ("eval", (1, evalFunc))
-    , ("import require using", (1, importFunc))
-    , ("quote data", (1, quoteFunc))
+    fmap (\(n, ar, fn) -> (n, defForm {arity=ar, form=fn, name=(Just n)}))
+    [ ("if",     3, ifFunc)
+    , ("cond",   0, condFunc)
+    , ("\\",     2, funcFunc)
+    , ("def",    2, def)
+    , ("let",    1, letFunc)
+    , ("fun",    2, namedFun)
+    , ("eval",   1, evalFunc)
+    , ("import", 1, importFunc)
+    , ("quote",  1, quoteFunc)
     ] where
-        quoteFunc :: PhageForm
-        quoteFunc [a] t = pure $ (a, t)
-        quoteFunc v _ = formErr "quote" v
 
         importFunc :: PhageForm
         importFunc [PStr fname] t =
             ExceptT $ readFile fname >>= imp
-            where
-                imp s = case parse parseAst fname s of
+            where imp s = case parse parseAst fname s of
                     Left s -> return $ Left $ show s
                     Right ast -> runExceptT $ interpret t ast
-        importFunc v _ = formErr "import" v
+        importFunc v _ = formErr v
 
         evalFunc :: PhageForm
-        evalFunc [a] t = eval t a >>= \(v, t) -> eval t v
-        evalFunc v _ = formErr "eval" v
+        evalFunc [a] t = eval t a >>= \(a, _) -> eval t a
+        evalFunc v _ = formErr v
 
         param (PAtom str) = pure str
         param thing = throwE $ "Invalid parameter name: " <> show thing
@@ -224,36 +234,39 @@ specials =
                 tab = newTab (entries <> zip strs params) oldtab
             in  lastDef (PList []) <$> block tab blk
 
-        funcreate (PList strs : blk) tab selfrefs = mapM param strs
+        funcreate :: [PhageVal] -> SymTab -> [String] -> Maybe String -> PhageRes
+        funcreate (PList strs : blk) tab selfrefs name = mapM param strs
             >>= \strs ->
                 let srefs = selfrefs <> ["rec", "this"]
-                    f = PFunc (length strs) []
-                        (newTab (zip srefs (repeat f)) tab)
+                    f = mkBoundFunc (length strs)
                         (runFunc blk strs)
-                in  pure f
-        funcreate v _ _ = formErr "function" v
+                        (newTab (zip srefs (repeat f)) tab)
+                        name
+                in  pure (f, tab)
+        funcreate v _ _ _ = formErr v
 
         -- named functions support recursion
         namedFun :: PhageForm
-        namedFun (PAtom name : params) tab = funcreate params tab [name]
-            >>= \f -> pure (f, insert name f tab)
-        namedFunc v _ = formErr "fun" v
+        namedFun (PAtom name : params) tab =
+            (\(v, t) -> (v, Data.Map.insert name v t)) <$>
+                funcreate params tab [name] (Just name)
+        namedFunc v _ = formErr v
 
         letFunc' :: PhageVal -> PhageForm
         letFunc' res [] t = pure (res, t)
         letFunc' res (PList [PAtom str, val] : others) t = eval t val
             >>= \(val, ntab) -> letFunc' val others (insert str val t)
-        letFunc' _ v _ = formErr "let" v
+        letFunc' _ v _ = formErr v
 
         letFunc :: PhageForm
         letFunc = letFunc' (PList [])
 
         def :: PhageForm
-        def [PAtom a, b] tab = letFunc [PList [PAtom a, b]] tab
-        def v _ = formErr "def" v
+        def [PAtom a, b] t = letFunc [PList [PAtom a, b]] t
+        def v _ = formErr v
 
         funcFunc :: PhageForm
-        funcFunc params tab = (,tab) <$> funcreate params tab []
+        funcFunc params tab = funcreate params tab [] Nothing
 
         condFunc :: PhageForm
         condFunc [] tab = throwE "condition not met"
@@ -261,14 +274,14 @@ specials =
             >>= \(pred, t) -> if truthy pred
                 then eval tab val
                 else condFunc nodes tab
-        condFunc v _ = formErr "cond" v
+        condFunc v _ = formErr v
 
         ifFunc :: PhageForm
         ifFunc [a, b, c] t = condFunc [PList [a, b], PList [PNum 1, c]] t
-        ifFunc v _ = formErr "if" v
+        ifFunc v _ = formErr v
 
 allVals :: [(String, PhageVal)]
-allVals = concat
+allVals = fmap nameThings $ concat
     [ arith
     , comparison
     , bools
@@ -276,12 +289,15 @@ allVals = concat
     , lists
     , anyVal
     , metaFuncs
-    , [ ("print", mkFunc 0 prnt)
+    , [ ("print", mkSimFunc 0 prnt)
       ]
-    ] >>= \(ss, val) -> (, val) <$> words ss
+    ]
     where
-        prnt :: PhageFunc
-        prnt lst t =
+        nameThings (s, f@PForm{name=n}) = (s, f {name=Just s})
+        nameThings a = a
+
+        prnt :: SimFunc
+        prnt lst =
             ret ((mapM (putStr . (<> " ") . show) lst) >> putStrLn "")
                 (lastDef (PList []) lst)
 

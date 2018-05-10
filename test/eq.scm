@@ -1,3 +1,5 @@
+(import "prelude/wordy.scm")
+
 (def tests
 	(quote (
 

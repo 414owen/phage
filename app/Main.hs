@@ -24,7 +24,7 @@ getAst fname src = case parse parseAst fname src of
         [] -> Left ""
         _ -> Right ast
 
-run :: Bool -> SymTab -> String -> String -> IO (SymTab)
+run :: Bool -> SymTab -> String -> String -> IO SymTab
 run repl tab fname source = case (repl, getAst fname source) of
     (_, Left e) -> const tab <$> putStr e
     (True, Right (x : y : xs)) -> const tab <$> putStrLn

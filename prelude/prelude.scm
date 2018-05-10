@@ -48,8 +48,8 @@
 (def rev (fold () cons))
 (def last (dot car rev))
 (def init (dot rev (dot cdr rev)))
-(def all (fold true and))
-(def any (fold false or))
+(def all (fold true &))
+(def any (fold false |))
 (def rpipe (pipe list rev (apply pipe)))
 (def dot rpipe)
 
