@@ -16,6 +16,7 @@ import Interpreter
 import Safe
 import Data.Tuple.Lazy
 import Data.Map (insert)
+import Data.Map.Lazy (toList)
 import Data.Maybe
 import Data.Monoid
 import Control.Monad.Trans.Except
@@ -35,7 +36,7 @@ mkBoundFunc arity fn env name = PForm arity [] eval
          (funToForm fn env) name True
 
 funToForm :: PhageFunc -> SymTab -> PhageForm
-funToForm fn e c ps = ([],) <$> fn e ps
+funToForm fn e c ps = ([],) <$> fn c ps
 
 mkFunc :: Int -> PhageFunc -> PhageVal
 mkFunc arity fn = mkBoundFunc arity fn mempty Nothing
@@ -253,18 +254,8 @@ specials =
                 res = lastBlock tab blk
             in  mapFst (if scoped then const [] else id) <$> res
 
-        formcreate ::
-            Maybe String ->
-            -- evaluate arguments
-            Bool ->
-            -- scope escapes
-            Bool ->
-            -- dynamically scoped
-            Bool ->
-            SymTab ->
-            [PhageVal] ->
-            [String] ->
-            ExceptT PhageErr IO PhageVal
+        formcreate :: Maybe String -> Bool -> Bool -> Bool ->
+            SymTab -> [PhageVal] -> [String] -> PhageFuncRes
         formcreate name argval dyn scoped tab (PList strs : blk) selfrefs =
             let t = newTabM (zip selfrefs $ repeat f) tab
                 f = (\strs -> defForm
@@ -326,6 +317,7 @@ allVals = fmap nameThings $ concat
     , anyVal
     , metaFuncs
     , [ ("print", mkSimFunc 0 prnt)
+      , ("env", mkFunc 0 env)
       ]
     ]
     where
@@ -336,6 +328,9 @@ allVals = fmap nameThings $ concat
         prnt lst =
             ret ((mapM (putStr . (<> " ") . show) lst) >> putStrLn "")
                 (lastDef (PList []) lst)
+
+        env :: PhageFunc
+        env tab _ = ExceptT $ const (Right $ PList []) <$> print (fmap fst $ toList tab)
 
         ret :: IO a -> b -> ExceptT PhageErr IO b
         ret a b = ExceptT $ const (Right b) <$> a

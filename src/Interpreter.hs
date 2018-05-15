@@ -44,10 +44,14 @@ apply tab a ps = ExceptT $ return $ Left ("Tried to call a non-function: " <> sh
 realeval :: SymTab -> PhageVal -> PhageRes
 realeval tab (PAtom str) = ([],) <$> lkp tab str
 realeval tab (PList (fname : params)) = eval tab fname
-    >>= \(ftab, fn) -> case fn of
-        f@PForm{paramap=pmap} -> mapM (fmap snd . pmap tab) params
-        _ -> pure params
-    >>= apply tab fn
+    >>= \(e1, fn) -> case fn of
+        f@PForm{paramap=pmap} -> foldM
+            (\(e2, l) p -> pmap (newTabM e2 tab) p >>=
+                \(e3, v) -> pure (e2 <> e3, v : l))
+            (e1, []) params
+        _ -> pure ([], params)
+    >>= \(e4, vs) -> apply tab fn (reverse vs)
+    >>= \(e5, v) -> pure (e4 <> e5, v)
 realeval t thing = pure ([], thing)
 
 eval :: SymTab -> PhageVal -> PhageRes
