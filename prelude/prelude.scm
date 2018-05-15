@@ -1,3 +1,6 @@
+(def quote (\\(a) a))
+(funs call (f) (apply f rest))
+
 (fun fold (zero fn lst)
 	((\(acc lst)
 		(if (= lst ()) acc
@@ -55,8 +58,8 @@
 
 
 // do just returns its last parameter
-
-(fun do () (last args))
+(funs do () (last args))
+(fun block () (last args))
 
 (fun map (fn lst)
 	 (rev (fold ()

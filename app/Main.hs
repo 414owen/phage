@@ -29,10 +29,10 @@ run repl tab fname source = case (repl, getAst fname source) of
     (_, Left e) -> const tab <$> putStr e
     (True, Right (x : y : xs)) -> const tab <$> putStrLn
         "The repl only accepts one expression at a time"
-    (_, Right ast) -> runExceptT (interpret tab ast)
+    (_, Right ast) -> runExceptT (lastBlock tab ast)
         >>= \res -> case res of
-            Right (val, tab) ->
-                const tab <$> (putStr $ if repl
+            Right (eds, val) ->
+                const (newTabM eds tab) <$> (putStr $ if repl
                     then ">> " <> show val <> "\n"
                     else "")
             Left err ->

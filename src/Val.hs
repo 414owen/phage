@@ -1,27 +1,33 @@
 module Val
     ( PhageVal(..)
     , SymTab
+    , SymEdit
+    , PRes
     , PhageRes
     , newTab
+    , newTabM
     , typeName
     , PhageForm
     ) where
 
 import Err
 import Text.Show.Functions
-import Data.Map
-import Data.List
+import Data.Map hiding (foldl)
+import Data.Tuple.Lazy
+import Data.List hiding (insert)
 import Data.Maybe
 import Data.Monoid
 import Control.Monad.Trans.Except
 
-type PhageRes = ExceptT PhageErr IO (PhageVal, SymTab)
+type SymEdit = (String, ExceptT PhageErr IO PhageVal)
+type PRes = ([SymEdit], PhageVal)
+type PhageRes = ExceptT PhageErr IO PRes
 
 type PhageForm =
-           [PhageVal]
         -- caller environment
-        -> SymTab
+           SymTab
         -- returns a result, and a new caller environment
+        -> [PhageVal]
         -> PhageRes
 
 data PhageVal
@@ -41,10 +47,14 @@ data PhageVal
       , func    :: Bool
       }
 
-type SymTab = Map String PhageVal
+-- this scope's definitions, to be carried
+type SymTab = Map String (ExceptT PhageErr IO PhageVal)
+
+newTabM :: [SymEdit] -> SymTab -> SymTab
+newTabM vs t = foldl (\acc (s, v) -> insert s v acc) t vs
 
 newTab :: [(String, PhageVal)] -> SymTab -> SymTab
-newTab vs tab = Prelude.foldl (\m (k, v) -> Data.Map.insert k v m) tab vs
+newTab vs t = newTabM (fmap (mapSnd pure) vs) t
 
 spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = intercalate space (show <$> els)

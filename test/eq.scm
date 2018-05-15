@@ -16,7 +16,7 @@
 		(false false)
 
 
-		// core aliases
+		// redefinitions
 
 		(false f)
 		(t true)
