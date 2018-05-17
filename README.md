@@ -9,7 +9,7 @@ and be 'hackable'.
 ### Redefine Everything
 
 Phage has no keywords (you can redefine `if`, `true`, and `def` if you want). This is
-because `if`, `true`, and `def` are normal variables.
+because `if`, `true`, and `def` are normal bindings.
 
 ```scheme
 (def a 1)    // a becomes 1
@@ -19,18 +19,18 @@ because `if`, `true`, and `def` are normal variables.
 (def c 5)    // broken! you can't call 4!
 ```
 
-Because of this property, it's very easy to project your personal tastes onto phage. In fact, the core language defines variables `def`, `define` and `var` to do the exact same thing. There are also two other ways to define variables, that act differently, `fun`, and `let`.
+Because of this property, it's very easy to project your personal tastes onto phage. There are other ways to define bindings, functions' parameter names are bindings, and you can also use `defs` `let` or one of the evaluatable definer shorthands.
 
 ### Immutability
 
-Data is immutable. When redefine variables, everything up to that point will
+Data is immutable. When we redefine variables, everything up to that point will
 maintain the old reference. Here is an example (notice that when we redefine
-`a`, `pr` mainrtains the old reference):
+`a`, `pr` maintains the old reference):
 
 ```scheme
 (def a 1)              // a becomes 1
 (print a)              // prints 1
-(fun pr () (print a))  // defines a function that prints a
+(fn pr () (print a))   // defines a function that prints a
 (def a 2)              // a becomes 2
 (print a)              // prints 2
 (pr)                   // prints 1
@@ -66,18 +66,24 @@ print           // Functions
 true            // Booleans
 
 // ---
+// Variables
+// ---
+
+
+
+// ---
 // Function Application
 // ---
 
-(+ 1 2)        // 3
-(+ 1 2 3 4 5)  // 15
+(+ 1 2)       // 3
+(+ 1 2 3 4 5) // 15
 
 // ---
 // Function Definition
 // ---
 
 // `hello` takes two parameters, prints them, then returns their sum
-(fun hello (a b) (print a b) (+ a b))
+(fn hello (a b) (print a b) (+ a b))
 
 // Anonymous functions are created with `\`
 (\ (a b c) (+ a (- b c)))
@@ -94,10 +100,10 @@ true            // Booleans
 // ---
 
 // normal, recursive way
-(fun fact (a) (if (<= a 0) 1 (* a (fact (- a 1)))))
+(fn fact (a) (if (<= a 0) 1 (* a (fact (- a 1)))))
 
 // product of range
-(fun fact (a) (prod (upto a)))
+(fn fact (a) (prod (upto a)))
 
 // data pipe
 (def fact (pipe upto prod))

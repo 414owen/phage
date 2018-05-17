@@ -1,80 +1,124 @@
-(def quote (\\(a) a))
-(funs call (f) (apply f rest))
+(def &  (\(a b) (! (| (! a) (! b)))))
 
-(fun fold (zero fn lst)
-	((\(acc lst)
+(def -> (\(a b) (| (! a) b)))
+
+(def ^  (\(a b) (& (| a b) (! (& a b)))))
+
+(def ~= (\(a b) (! (^ a b))))
+
+(def list (\() args))
+
+(def quote (\\(a) a))
+
+(def quotes (\\() args))
+
+(def do (\ ()
+	(if (= args ()) ()
+		(if (= (cdr args) ()) (car args)
+			(apply do (cdr args))))))
+
+// (defunc fn \)
+//    allows
+// (def hi (\() 3))
+//    to be written
+// (fn hi () 3)
+
+(def defunc (s\\ (name f)
+	(call def name
+		(call (ds\\ (g name ps)
+			(call def name
+				(cons g (cons ps rest)))) f))))
+
+(def funcs
+	(quote
+		((sfm   s\\)
+		 (fm     \\)
+		 (dsfm ds\\)
+		 (dfm   d\\)
+		 (sfn    s\)
+		 (fn      \)
+		 (dsfn  ds\)
+		 (dfn    d\))))
+
+((s\ (l)
+	(if (= l ()) ()
+		(do (call defunc (caar l) (eval (cadar l)))
+			(rec (cdr l)))))
+	funcs)
+
+
+(sfn fold (zero fn lst)
+	((s\ (acc lst)
 		(if (= lst ()) acc
 			(rec (fn (car lst) acc) (cdr lst))))
 		zero lst))
 
-// homogeneous binary function helper
+(def rev (fold () cons))
 
-(fun homBinFunc (fn) (\(a b) (fold b fn (cons a rest))))
-
-
-// boolean logic
-
-(def &  (homBinFunc (\(a b) (! (| (! a) (! b))))))
-(def -> (homBinFunc (\(a b) (| (! a) b))))
-(def ^  (homBinFunc (\(a b) (& (| a b) (! (& a b))))))
-(def ~= (homBinFunc (\(a b) (! (^ a b)))))
-
-(let
-	(implies ->)
-	(and &)
-	(xor |)
-	(equiv ~=))
-
-
-// returns a list of its arguments
-
-(fun list () args)
-
-
-// functional
-
-(fun dot (a b c) (a (b c)))
-(fun const (a b) a)
-
-(fun pipe ()
+(fn pipe ()
 	(def funs args)
-	(fun piperec (params lst)
+	(fn piperec (params lst)
 		(if (= lst ()) (car params)
 		(rec (list (apply (car lst) params)) (cdr lst))))
 	(\() (piperec args funs)))
 
-(fun choose (fn) (homBinFunc (\(a b) (if (fn a b) a b))))
-(def min (choose <))
-(fun minl (l) (fold (car l) min l))
-(def max (choose >))
-(fun maxl (l) (fold (car l) max l))
-(def rev (fold () cons))
-(def last (dot car rev))
-(def init (dot rev (dot cdr rev)))
-(def all (fold true &))
-(def any (fold false |))
 (def rpipe (pipe list rev (apply pipe)))
+
 (def dot rpipe)
 
+(dsfn flip (_fn) (s\ (_a _b) (call _fn _b _a)))
 
-// do just returns its last parameter
-(funs do () (last args))
-(fun block () (last args))
+(fn const (a b) a)
 
-(fun map (fn lst)
-	 (rev (fold ()
-			(\(el acc) (cons (fn el) acc)) lst)))
+(def all (fold true &))
+
+(def any (fold false |))
+
+(def nest (\(n el) (if (= n 0) el (nest (- n 1) (list el)))))
+
+(fn homBinFunc (f) (s\ (a b)
+	(fold a (flip f) (cons b rest))))
+
+(fn choose (_f) (homBinFunc (\(_a _b) (if (call _f _a _b) _a _b))))
+
+(def min (choose <))
+
+(fn  minl (l) (fold (car l) min l))
+
+(def max (choose >))
+
+(fn  maxl (l) (fold (car l) max l))
+
+(def init (dot rev (dot cdr rev)))
+
+(def last (dot car rev))
+
+(fn block () (last args))
+
+(sfn map (fun lst)
+	(rev (fold ()
+		(s\ (el acc) (cons (call fun el) acc)) lst)))
+
+(dsfm mkHom (fname)
+	(call def fname (homBinFunc (eval fname))))
+
+// turn some boring binary functions into hella rad
+// homogeneous binary functions
+(map mkHom (quote (+ - / * % & ^ -> ~=)))
 
 (def sum (fold 0 +))
+
 (def prod (fold 1 *))
+
 (def len (pipe (map (const 1)) sum))
-(fun filter (fn lst)
+
+(fn filter (fun lst)
 	(rev (fold () (\(el acc)
-		(if (fn el) (cons el acc) acc)) lst)))
+		(if (fun el) (cons el acc) acc)) lst)))
 
-(fun caror (el lst) (if (= lst ()) el (car lst)))
+(fn caror (el lst) (if (= lst ()) el (car lst)))
 
-(fun range (start end)
+(fn range (start end)
 	(def step (caror 1 rest))
 	(def fin (if (> step 0) >= <=))
 	(if (fin start end) ()
@@ -82,17 +126,28 @@
 
 (def upto (pipe (+ 1) (range 1)))
 
-(fun append (a b)
-	 (if (= a ()) b (cons (car a) (append (cdr a) b))))
-
-(fun concat (lsts)
-	(if (= lsts ()) ()
-		(append (car lsts) (concat (cdr lsts)))))
-
-(fun intersperse (el lst)
+(fn intersperse (el lst)
 	(cdr ((\(el lst)
 		(if (= lst ()) ()
 			(cons el (cons (car lst) (rec el (cdr lst))))))
 		 el lst)))
 
+(def append (\ (a b)
+	 (if (= a ()) b (cons (car a) (append (cdr a) b)))))
+
+(def concat (\ (lsts)
+	(if (= lsts ()) ()
+		(append (car lsts) (concat (cdr lsts))))))
+
 (def intercalate (pipe intersperse concat))
+
+(dfm let (tup)
+	((apply \ (cons (list (car tup)) rest)) (eval (cdar tup))))
+
+(dsfm defs () (map (apply def) args))
+
+(dsfm cond ()
+	(if (= args ()) ()
+		(if (eval (caar args))
+			(eval (cadar args))
+			(apply cond (cdr args)))))

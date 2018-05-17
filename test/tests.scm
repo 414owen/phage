@@ -1,5 +1,3 @@
-(print "importing prelude")
-
 (import "prelude/prelude.scm")
 
 (def tlst (list 1 2 3 4))
@@ -14,8 +12,8 @@
 
 (print "running tests")
 
-(fun run (tests)
-	(fun runrec (n a test)
+(fn run (tests)
+	(fn runrec (n a test)
 		(print n)
 		(if (= test ())
 			a

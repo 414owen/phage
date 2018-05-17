@@ -67,30 +67,6 @@ binFunc fromA fromB toC fn = mkSimFunc 2 nf
             _ -> throwE typeMess
 
 
--- these functions continue passing values onwards, like folds,
--- but curry until two parameters are applied eg.
--- (+)         -> function
--- (+ 1)       -> function
--- (+ 1 2)     -> 3
--- (+ 1 2 3 4) -> 10
-homogeneousBinFunc :: Eq a =>
-       (PhageVal -> Maybe a)
-    -> (a -> PhageVal)
-    -> (a -> a -> a)
-    -> PhageVal
-homogeneousBinFunc from to fn = mkSimFunc 2 func
-    where
-        func vals =
-            let fromvals = from <$> vals
-                valid = not $ any (== Nothing) fromvals
-                nvals = catMaybes fromvals
-            in
-                if valid
-                    then pure $ to $
-                        foldl (\a b -> fn a b) (head nvals) (tail nvals)
-                    else throwE typeMess
-
-
 fromNum :: (PhageVal -> Maybe Integer)
 fromNum (PNum a) = Just a
 fromNum _ = Nothing
@@ -101,6 +77,8 @@ truthy (PBool a) = a
 truthy (PNum 0) = False
 truthy (PAtom "") = False
 truthy _ = True
+
+jusTruthy = Just . truthy
 
 callErr a b = throwE ("Unexpected call to " <> a <> ": " <> show b)
 formErr :: Show a => a -> ExceptT String IO b
@@ -116,17 +94,16 @@ anyVal =
     [ [ ("=", equals)
       , ("!", notFunc)]
     , (fmap . mapSnd) booleyFunc
-        [ ("&", (&&))
-        , ("|", (||))
+        [ ("|", (||))
         ]
     ] where
         equals = mkFunc 2 (\t v -> pure $ PBool $ func v) where
             func [a, b] = a == b
             func (a : b : xs) = a == b && func (b : xs)
 
-        notFunc = unaryFunc (Just . truthy) PBool not
+        notFunc = unaryFunc jusTruthy PBool not
 
-        booleyFunc = homogeneousBinFunc (Just . truthy) PBool
+        booleyFunc = binFunc jusTruthy jusTruthy PBool
 
 comparison :: [(String, PhageVal)]
 comparison =
@@ -139,7 +116,7 @@ comparison =
 
 arith :: [(String, PhageVal)]
 arith =
-    (fmap . mapSnd) (homogeneousBinFunc fromNum PNum)
+    (fmap . mapSnd) (binFunc fromNum fromNum PNum)
         [ ("+", (+))
         , ("-", (-))
         , ("*", (*))
@@ -183,22 +160,26 @@ metaFuncs :: [(String, PhageVal)]
 metaFuncs =
     [ ("arity", mkFunc 1 arFunc)
     , ("apply", defForm {arity=2, form=apFunc, paramap=eval})
+    , ("call", defForm {arity=2, form=callFunc, paramap=eval})
     ] where
         arFunc :: PhageFunc
         arFunc _ (PForm{arity=ar} : _) = pure $ PNum $ toInteger $ ar
 
         apFunc :: PhageForm
-        apFunc tab (f@PForm{} : PList args : xs) =
+        apFunc tab (f@PForm{} : PList a1 : PList a2 : xs) =
+            apFunc tab (f : PList (a1 <> a2) : xs)
+        apFunc tab (f@PForm{} : PList args : []) =
             apply tab f args
         apFunc _ v = funcErr v
+
+        callFunc :: PhageForm
+        callFunc tab (x : xs) = apFunc tab [x, PList xs]
 
 specials :: [(String, PhageVal)]
 specials =
     fmap (\(n, ar, fn) -> (n, defForm {arity=ar, form=fn, name=(Just n)}))
     [ ("if",     3, ifFunc)
-    , ("cond",   0, condFunc)
     , ("def",    2, def)
-    , ("let",    1, letFunc)
     , ("eval",   1, evalFunc)
     , ("import", 1, importFunc)
 
@@ -209,24 +190,24 @@ specials =
     -- evaluate args
     -- dynamically / lexically scoped
     -- scope escapes form / function
-    , ("\\\\s",  2, formFunc False False False False)
+    , ("s\\\\",  2, formFunc False False False False)
     , ("\\\\",   2, formFunc False False False True)
-    , ("\\\\sd", 2, formFunc False False True  False)
-    , ("\\\\d",  2, formFunc False False True  True)
-    , ("\\s",    2, formFunc False True  False False)
+    , ("ds\\\\", 2, formFunc False False True  False)
+    , ("d\\\\",  2, formFunc False False True  True)
+    , ("s\\",    2, formFunc False True  False False)
     , ("\\",     2, formFunc False True  False True)
-    , ("\\sd",   2, formFunc False True  True  False)
-    , ("\\d",    2, formFunc False True  True  True)
+    , ("ds\\",   2, formFunc False True  True  False)
+    , ("d\\",    2, formFunc False True  True  True)
 
-    -- TODO move to prelude
-    , ("forms",  3, formFunc True  False False False)
-    , ("form",   3, formFunc True  False False True)
-    , ("formsd", 3, formFunc True  False True  False)
-    , ("formd",  3, formFunc True  False True  True)
-    , ("funs",   3, formFunc True  True  False False)
-    , ("fun",    3, formFunc True  True  False True)
-    , ("funsd",  3, formFunc True  True  True  False)
-    , ("fund",   3, formFunc True  True  True  True)
+    -- The following have been moved to the prelude
+    -- , ("sform",  3, formFunc True  False False False)
+    -- , ("form",   3, formFunc True  False False True)
+    -- , ("dsform", 3, formFunc True  False True  False)
+    -- , ("dform",  3, formFunc True  False True  True)
+    -- , ("sfun",   3, formFunc True  True  False False)
+    -- , ("fun",    3, formFunc True  True  False True)
+    -- , ("dsfun",  3, formFunc True  True  True  False)
+    -- , ("dfun",   3, formFunc True  True  True  True)
     ] where
 
         importFunc :: PhageForm
@@ -245,12 +226,12 @@ specials =
         param thing = throwE $ "Invalid parameter name: " <> show thing
 
         runForm :: Bool -> Bool -> [PhageVal] -> [String] -> SymTab -> PhageForm
-        runForm scoped dyn blk strs bound oldtab params =
+        runForm scoped dyn blk strs bctx cctx params =
             let entries = [ ("args", PList params)
                           , ("rest", PList (drop (length strs) params))
                           ]
                 tab = newTab (entries <> zip strs params)
-                    (if dyn then oldtab else bound)
+                    (if dyn then cctx else bctx)
                 res = lastBlock tab blk
             in  mapFst (if scoped then const [] else id) <$> res
 
@@ -278,15 +259,6 @@ specials =
             ([],) <$> formcreate Nothing argval dyn scoped tab ns recs
         formFunc _ _ _ _ _ v = formErr v
 
-        letFunc' :: PhageVal -> PhageForm
-        letFunc' res t [] = pure ([], res)
-        letFunc' res t (PList [PAtom str, val] : others) = eval t val
-            >>= \(_, val) -> letFunc' val (newTab [(str, val)] t) others
-        letFunc' _ _ v = formErr v
-
-        letFunc :: PhageForm
-        letFunc = letFunc' (PList [])
-
         def :: PhageForm
         def tab val@[PAtom a, b] =
             -- we're using binding so as not to repeat IO actions
@@ -295,16 +267,10 @@ specials =
                 v >>= \v -> pure ([(a, pure v)], v)
         def _ v = formErr v
 
-        condFunc :: PhageForm
-        condFunc tab [] = throwE "condition not met"
-        condFunc tab (PList [pred, val] : nodes) = eval tab pred
-            >>= \(t, pred) -> if truthy pred
-                then eval tab val
-                else condFunc tab nodes
-        condFunc _ v = formErr v
-
         ifFunc :: PhageForm
-        ifFunc t [a, b, c] = condFunc t [PList [a, b], PList [PNum 1, c]]
+        ifFunc tab [a, b, c] = eval tab a
+            >>= \(eds, pred) -> eval (newTabM eds tab)
+                    (if truthy pred then b else c)
         ifFunc _ v = formErr v
 
 allVals :: [(String, PhageVal)]

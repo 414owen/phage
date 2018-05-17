@@ -39,7 +39,7 @@ apply tab form@(PForm{paramap=pmap, name=n}) ps =
         nform@PForm{arity=a, bound=p, form=f}
             | a <= 0 -> f tab (reverse p)
         a -> return ([], a)
-apply tab a ps = ExceptT $ return $ Left ("Tried to call a non-function: " <> show a)
+apply tab a ps = throwE ("Tried to call a non-function: " <> show a)
 
 realeval :: SymTab -> PhageVal -> PhageRes
 realeval tab (PAtom str) = ([],) <$> lkp tab str

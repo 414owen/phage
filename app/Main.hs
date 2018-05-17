@@ -40,12 +40,15 @@ run repl tab fname source = case (repl, getAst fname source) of
 
 info = "The Phage Programming Language REPL\n0.1 pre-alpha"
 
+prelFile = "prelude/prelude.scm"
+
 repl :: IO ()
-repl
-    =   putStrLn info
-    >>  mapM lookupEnv ["LANG", "LC_ALL", "LC_CTYPE"]
+repl =  putStrLn info
+    >>  readFile prelFile
+    >>= run False core prelFile
+    >>= \tab -> mapM lookupEnv ["LANG", "LC_ALL", "LC_CTYPE"]
     >>= return . any (isInfixOf "UTF" . map toUpper) . catMaybes
-    >>= rec core
+    >>= rec tab
     where
         rec :: SymTab -> Bool -> IO ()
         rec tab unicode
@@ -57,5 +60,6 @@ repl
 
 main :: IO ()
 main = getArgs >>= \args -> case args of
-        (b : xs) -> readFile b >>= run False core "stdin" >> return ()
+        (b : xs) -> readFile b
+            >>= run False core b >> pure ()
         _ -> repl
