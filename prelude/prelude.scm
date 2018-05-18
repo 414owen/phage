@@ -46,6 +46,9 @@
 			(rec (cdr l)))))
 	funcs)
 
+(dsfn flip (_fn) (s\ (_a _b) (call _fn _b _a)))
+
+(fn const (a b) a)
 
 (sfn fold (zero fn lst)
 	((s\ (acc lst)
@@ -65,10 +68,6 @@
 (def rpipe (pipe list rev (apply pipe)))
 
 (def dot rpipe)
-
-(dsfn flip (_fn) (s\ (_a _b) (call _fn _b _a)))
-
-(fn const (a b) a)
 
 (def all (fold true &))
 
@@ -143,6 +142,14 @@
 
 (dfm let (tup)
 	((apply \ (cons (list (car tup)) rest)) (eval (cdar tup))))
+
+(dfm lets (tups)
+	((s\ (l)
+		(if (= l ()) ()
+			(do (apply def (car l)) (rec (cdr l))))) tups)
+	((\ (l) (if (= l ()) ()
+		(if (= (cdr l) ()) (eval (car l))
+			(do (eval (car l)) (rec (cdr l)))))) rest))
 
 (dsfm defs () (map (apply def) args))
 

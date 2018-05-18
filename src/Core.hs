@@ -28,7 +28,7 @@ type PhageFuncRes = ExceptT PhageErr IO PhageVal
 type PhageFunc = SymTab -> [PhageVal] -> PhageFuncRes
 type SimFunc = [PhageVal] -> PhageFuncRes
 
-quote t [v] = pure ([], v)
+quote t (v : _) = pure ([], v)
 defForm = PForm 0 [] (\_ v -> pure ([], v)) quote Nothing False
 
 mkBoundFunc :: Int -> PhageFunc -> SymTab -> Maybe String -> PhageVal
@@ -219,7 +219,7 @@ specials =
         importFunc _ v = formErr v
 
         evalFunc :: PhageForm
-        evalFunc t [a] = eval t a >>= \(_, a) -> eval t a
+        evalFunc t [a] = eval t a >>= \(eds, a) -> eval (newTabM eds t) a
         evalFunc _ v = formErr v
 
         param (PAtom str) = pure str
