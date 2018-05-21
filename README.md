@@ -1,12 +1,11 @@
-<p align="center">
-   <img src="http://owenowen.netsoc.ie/res/phage.svg" height="100">
-</p>
-
 <div align="center">
+	<p>
+	   <img src="http://owenowen.netsoc.ie/res/phage.svg" height="150">
+	</p>
 	<h1>The Phage Programming Language</h1>
 	<a href="https://travis-ci.org/414owen/Phage">
 		<img
-			src="https://api.travis-ci.org/414owen/Phage.svg?branch=master"
+			src="https://img.shields.io/travis/414owen/Phage.svg"
 			alt="Build Status Badge"
 		></img>
 	</a>
