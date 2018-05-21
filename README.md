@@ -5,10 +5,15 @@
 <div align="center">
 	<h1>The Phage Programming Language</h1>
 	<a href="https://travis-ci.org/414owen/Phage">
-		<img src="https://api.travis-ci.org/414owen/Phage.svg?branch=master">
-			Build Status
-		</img>
+		<img
+			src="https://api.travis-ci.org/414owen/Phage.svg?branch=master"
+			alt="Build Status Badge"
+		></img>
 	</a>
+	<img
+		src="https://img.shields.io/github/license/414owen/Phage.svg"
+		alt="Licence Badge"
+	></img>
 </div>
 
 
