@@ -2,9 +2,15 @@
    <img src="http://owenowen.netsoc.ie/res/phage.svg" height="100">
 </p>
 
-<h1 align="center">
-	The Phage Programming Language
-</h1>
+<div align="center">
+	<h1>The Phage Programming Language</h1>
+	<a href="https://travis-ci.org/414owen/Phage">
+		<img src="https://api.travis-ci.org/414owen/Phage.svg?branch=master">
+			Build Status
+		</img>
+	</a>
+</div>
+
 
 Phage is a functional, syntactically pure, interpreted programming language.
 It aims to provide maximum expressivity, excellent support for metaprogramming,
