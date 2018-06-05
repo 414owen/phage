@@ -2,15 +2,15 @@
 
 (def tlst (list 1 2 3 4))
 
-(print "creating test structure")
+(puts "creating test structure")
 
 (import "test/eq.scm")
 
-(print "getting length of cases")
+(puts "getting length of cases")
 
 (def cases (len tests))
 
-(print "running tests")
+(puts "running tests")
 
 (fn run (tests)
 	(fn runrec (n a test)
@@ -31,7 +31,6 @@
 	(runrec 0 0 tests))
 
 (def passed (run tests))
-(print)
-(print "cases:" cases)
-(print "passed:" passed)
-(print "failed:" (- cases passed))
+(puts "cases: ") (print cases)
+(puts "passed: ") (print passed)
+(puts "failed: ") (print (- cases passed))

@@ -52,6 +52,7 @@ realeval tab (PList (fname : params)) = eval tab fname
         _ -> pure ([], params)
     >>= \(e4, vs) -> apply tab fn (reverse vs)
     >>= \(e5, v) -> pure (e4 <> e5, v)
+realeval t (PQList l) = pure ([], PList l)
 realeval t thing = pure ([], thing)
 
 eval :: SymTab -> PhageVal -> PhageRes

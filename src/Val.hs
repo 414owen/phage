@@ -35,8 +35,8 @@ data PhageVal
     | PChar Char
     | PAtom String
     | PList [PhageVal]
+    | PQList [PhageVal]
     | PBool Bool
-    | PStr String
     -- arity, bound params, bound env, form
     | PForm
       { arity   :: Int
@@ -65,17 +65,16 @@ instance Eq PhageVal where
     (==) (PAtom a) (PAtom b) = a == b
     (==) (PList a) (PList b) = a == b
     (==) (PBool a) (PBool b) = a == b
-    (==) (PStr  a) (PStr  b) = a == b
     (==) _         _         = False
 
 instance Show PhageVal where
     show (PNum a)         = show a
     show (PChar c)        = pure c
     show (PAtom a)        = a
-    show (PStr s)         = s
     show (PBool True)     = "true"
     show (PBool False)    = "false"
     show (PList els)      = "(" <> spacedShow " " els <> ")"
+    show (PQList els)      = "{" <> spacedShow " " els <> "}"
     show (PForm {func = func, arity = arity, bound = params, name = name}) =
         "<" <> (if func then "func" else "form") <>
         (fromMaybe "" (fmap (" "<>) name)) <> " | arity: " <>

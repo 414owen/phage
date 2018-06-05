@@ -1,4 +1,4 @@
-module Parser 
+module Parser
     ( parseAst
     ) where
 
@@ -39,7 +39,7 @@ atom = PAtom <$> lexeme ((:) <$> (lowerChar <|> sym) <*> many restChar)
     restChar = lowerChar <|> upperChar <|> sym <|> digitChar
 
 phstring :: Parser PhageVal
-phstring = PStr <$> lexeme (char '"' >> manyTill L.charLiteral (char '"'))
+phstring = PQList <$> lexeme (char '"' >> manyTill (PChar <$> L.charLiteral) (char '"'))
 
 number :: Parser PhageVal
 number = PNum <$> lexeme L.decimal

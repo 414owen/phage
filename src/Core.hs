@@ -78,6 +78,12 @@ truthy (PNum 0) = False
 truthy (PAtom "") = False
 truthy _ = True
 
+stringy :: PhageVal -> Maybe String
+stringy (PList []) = Just []
+stringy (PList (PChar x : xs)) = (x:) <$> stringy (PList xs)
+stringy (PList (_ : xs)) = stringy (PList xs)
+stringy _ = Nothing
+
 jusTruthy = Just . truthy
 
 callErr a b = throwE ("Unexpected call to " <> a <> ": " <> show b)
@@ -211,14 +217,16 @@ specials =
     ] where
 
         importFunc :: PhageForm
-        importFunc tab [PStr fname] =
-            ExceptT $ readFile fname >>= imp
-            where imp s = case parse parseAst fname s of
-                    Left s -> return $ Left $ show s
-                    Right ast -> runExceptT $ lastBlock tab ast
+        importFunc tab [v] = eval tab v >>= \(eds, v) -> case stringy v of
+            Nothing -> formErr v
+            Just fname -> ExceptT $ readFile fname >>= imp
+                where imp s = case parse parseAst fname s of
+                        Left s -> return $ Left $ show s
+                        Right ast -> runExceptT $ lastBlock tab ast
         importFunc _ v = formErr v
 
         evalFunc :: PhageForm
+        evalFunc t [v@(PQList _)] = eval t v
         evalFunc t [a] = eval t a >>= \(eds, a) -> eval (newTabM eds t) a
         evalFunc _ v = formErr v
 
@@ -283,6 +291,7 @@ allVals = fmap nameThings $ concat
     , anyVal
     , metaFuncs
     , [ ("print", mkSimFunc 0 prnt)
+      , ("puts", mkSimFunc 0 puts)
       , ("env", mkFunc 0 env)
       ]
     ]
@@ -290,10 +299,15 @@ allVals = fmap nameThings $ concat
         nameThings (s, f@PForm{name=n}) = (s, f {name=Just s})
         nameThings a = a
 
+        puts :: SimFunc
+        puts [v] = case stringy v of
+            Nothing -> pure v
+            Just s -> ret (putStr s) v
+        puts v = funcErr v
+
         prnt :: SimFunc
-        prnt lst =
-            ret ((mapM (putStr . (<> " ") . show) lst) >> putStrLn "")
-                (lastDef (PList []) lst)
+        prnt [v] = ret (putStr $ show v) v
+        prnt v = funcErr v
 
         env :: PhageFunc
         env tab _ = ExceptT $ const (Right $ PList []) <$> print (fmap fst $ toList tab)
