@@ -158,3 +158,23 @@
 		(if (eval (caar args))
 			(eval (cadar args))
 			(apply cond (cdr args)))))
+
+(def oldprint print)
+(fn print (arg)
+	(oldprint arg)
+	(if (= rest ()) arg
+		(do (puts " ") (apply print rest))))
+
+(fn printl ()
+	(def a (apply print args))
+	(puts "\n") a)
+
+(def oldputs puts)
+(fn puts (arg)
+	(oldputs arg)
+	(if (= rest ()) arg
+		(do (puts " ") (apply puts rest))))
+
+(fn putsl ()
+	(def a (apply puts args))
+	(puts "\n") a)
