@@ -33,7 +33,7 @@ run repl tab fname source = case (repl, getAst fname source) of
         >>= \res -> case res of
             Right (eds, val) ->
                 const (newTabM eds tab) <$> (putStr $ if repl
-                    then ">> " <> show val <> "\n"
+                    then "\n>> " <> show val <> "\n"
                     else "")
             Left err ->
                 const tab <$> putStrLn ("Phage Error:\n" <> err)
