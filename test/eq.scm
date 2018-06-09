@@ -44,6 +44,8 @@
 		((| false true) true)
 		((| true false) true)
 		((| true true) true)
+		((| 1 2 3) 1)
+		((| () () 0 false "hi" 6 7 true 0) "hi")
 
 		// not
 		((! t) f)
@@ -287,10 +289,10 @@
 		((last tlst) 4)
 
 		// element-wise tests
-		((all tlst) true)
+		((all tlst) 4)
 		((all (cons false tlst)) false)
-		((any tlst) true)
-		((any (list 0 false ())) false)
+		((any tlst) 1)
+		((any (list 0 false ())) ())
 
 		// nesting
 		((nest 0 ()) ())

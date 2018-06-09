@@ -1,11 +1,3 @@
-(def &  (\(a b) (! (| (! a) (! b)))))
-
-(def -> (\(a b) (| (! a) b)))
-
-(def ^  (\(a b) (& (| a b) (! (& a b)))))
-
-(def ~= (\(a b) (! (^ a b))))
-
 (def list (\() args))
 
 (def quote (\\(a) a))
@@ -69,14 +61,26 @@
 
 (def dot rpipe)
 
-(def all (fold true &))
-
-(def any (fold false |))
-
 (def nest (\(n el) (if (= n 0) el (nest (- n 1) (list el)))))
 
 (fn homBinFunc (f) (s\ (a b)
 	(fold a (flip f) (cons b rest))))
+
+(fn ! (a) (if a false true))
+
+(def | (homBinFunc (\(a b) (if a a b))))
+
+(def & (homBinFunc (\(a b) (if a b a))))
+
+(def -> (\(a b) (| (! a) b)))
+
+(def ^  (\(a b) (& (| a b) (! (& a b)))))
+
+(def ~= (\(a b) (! (^ a b))))
+
+(fn all (l) (apply & l))
+
+(fn any (l) (apply | l))
 
 (fn choose (_f) (homBinFunc (\(_a _b) (if (call _f _a _b) _a _b))))
 
@@ -131,12 +135,11 @@
 			(cons el (cons (car lst) (rec el (cdr lst))))))
 		 el lst)))
 
-(def append (\ (a b)
-	 (if (= a ()) b (cons (car a) (append (cdr a) b)))))
+(def append (homBinFunc (\ (a b)
+	 (if (= a ()) b (cons (car a) (append (cdr a) b))))))
 
 (def concat (\ (lsts)
-	(if (= lsts ()) ()
-		(append (car lsts) (concat (cdr lsts))))))
+	(apply append (cons () (cons () lsts)))))
 
 (def intercalate (pipe intersperse concat))
 
@@ -159,21 +162,22 @@
 			(eval (cadar args))
 			(apply cond (cdr args)))))
 
+(fm strs (a)
+	(map str args))
+
 (def oldprint print)
+
 (fn print (arg)
 	(oldprint arg)
 	(if (= rest ()) arg
-		(do (puts " ") (apply print rest))))
+		(do (print (atom " ")) (apply print rest))))
+
+(fn puts (arg)
+	(apply print (map atom args)))
 
 (fn printl ()
 	(def a (apply print args))
 	(puts "\n") a)
-
-(def oldputs puts)
-(fn puts (arg)
-	(oldputs arg)
-	(if (= rest ()) arg
-		(do (puts " ") (apply puts rest))))
 
 (fn putsl ()
 	(def a (apply puts args))

@@ -96,20 +96,11 @@ flat = concat . fmap (\(ns, v) -> (, v) <$> ns)
 
 anyVal :: [(String, PhageVal)]
 anyVal =
-    concat $
-    [ [ ("=", equals)
-      , ("!", notFunc)]
-    , (fmap . mapSnd) booleyFunc
-        [ ("|", (||))
-        ]
+    [ ("=", equals)
     ] where
         equals = mkFunc 2 (\t v -> pure $ PBool $ func v) where
             func [a, b] = a == b
             func (a : b : xs) = a == b && func (b : xs)
-
-        notFunc = unaryFunc jusTruthy PBool not
-
-        booleyFunc = binFunc jusTruthy jusTruthy PBool
 
 comparison :: [(String, PhageVal)]
 comparison =
@@ -290,20 +281,25 @@ allVals = fmap nameThings $ concat
     , lists
     , anyVal
     , metaFuncs
-    , [ ("print", mkSimFunc 0 prnt)
-      , ("puts", mkSimFunc 0 puts)
+    , [ ("print", mkSimFunc 1 prnt)
+      , ("atom", mkFunc 1 atom)
+      , ("str", defForm{arity=1, form=str})
       , ("env", mkFunc 0 env)
       ]
     ]
     where
+        atom :: PhageFunc
+        atom t [v] = case stringy v of
+            Nothing -> funcErr [v]
+            Just str -> pure $ PAtom str
+        atom t v = funcErr v
+
+        str :: PhageForm
+        str t [v@(PAtom a)] = pure ([], PList (PChar <$> a))
+        str t v = funcErr v
+
         nameThings (s, f@PForm{name=n}) = (s, f {name=Just s})
         nameThings a = a
-
-        puts :: SimFunc
-        puts [v] = case stringy v of
-            Nothing -> pure v
-            Just s -> ret (putStr s) v
-        puts v = funcErr v
 
         prnt :: SimFunc
         prnt [v] = ret (putStr $ show v) v
