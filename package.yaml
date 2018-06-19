@@ -21,10 +21,11 @@ description:         Please see the README on Github at <https://github.com/414o
 
 dependencies:
 - base >= 4.7 && < 5
-- megaparsec
 - containers
-- transformers
+- haskeline
+- megaparsec
 - safe
+- transformers
 - utility-ht
 
 default-extensions: TupleSections

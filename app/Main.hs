@@ -1,17 +1,19 @@
 module Main where
 
-import Val
-import Parser
-import Interpreter
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Except
 import Core
-import Data.List
 import Data.Char
+import Data.List
 import Data.Maybe
-import Text.Megaparsec
+import Data.Monoid
+import Interpreter
+import Parser
+import System.Console.Haskeline
 import System.Environment
 import System.IO
-import Data.Monoid
-import Control.Monad.Trans.Except
+import Text.Megaparsec
+import Val
 
 source :: [String] -> IO (String, String)
 source (_:file:_) = (file,) <$> readFile file
@@ -48,15 +50,15 @@ repl =  putStrLn info
     >>= run False core prelFile
     >>= \tab -> mapM lookupEnv ["LANG", "LC_ALL", "LC_CTYPE"]
     >>= return . any (isInfixOf "UTF" . map toUpper) . catMaybes
-    >>= rec tab
+    >>= runInputT defaultSettings . rec tab
     where
-        rec :: SymTab -> Bool -> IO ()
+        rec :: SymTab -> Bool -> InputT IO ()
         rec tab unicode
-            =   putStr ((if unicode then "\x03BB:" else ">") <> " ")
-            >>  hFlush stdout
-            >>  getLine
-            >>= run True tab "stdin"
-            >>= \newtab -> rec newtab unicode
+            =   getInputLine ((if unicode then "\x03BB:" else ">") <> " ")
+            >>= \line -> lift (case line of
+                Nothing -> pure tab
+                Just line -> run True tab "stdin" line)
+            >>= \newTab -> rec newTab unicode
 
 main :: IO ()
 main = getArgs >>= \args -> case args of
