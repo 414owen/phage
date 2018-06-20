@@ -307,6 +307,17 @@ true            // Booleans
 
 // Of course, the better way to create the sum function is:
 (def sum (fold 0 +))
+
+// ---
+// List Comprehensions
+// ---
+
+// List comprehensions are defined in Phage, in `stdlib/comp.scm`.
+// There is no 'glue' syntax, like `[_ for _ in _]` or `[_ | _ <- |]`.
+// They also read left-to-right. Here are some examples:
+
+(comp (list 1 2 3) x x)                       // (1 2 3)
+(comp (list 1 2 3) x (list 4 5 6) y (* x y))  // (4 5 6 8 10 12 12 15 18)
 ```
 
 For more extensive examples, see my [tests](test/eq.scm), which are written in Phage.

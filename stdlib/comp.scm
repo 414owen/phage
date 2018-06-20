@@ -13,7 +13,6 @@ examples
 λ: (comp (list 1 2 3) x (list 4 5 6) y (* x y))
 >> (4 5 6 8 10 12 12 15 18)
 
-
 */
 
 (fm comp (lst var exp)
