@@ -195,18 +195,7 @@ specials =
     , ("\\",     2, formFunc False True  False True)
     , ("ds\\",   2, formFunc False True  True  False)
     , ("d\\",    2, formFunc False True  True  True)
-
-    -- The following have been moved to the prelude
-    -- , ("sform",  3, formFunc True  False False False)
-    -- , ("form",   3, formFunc True  False False True)
-    -- , ("dsform", 3, formFunc True  False True  False)
-    -- , ("dform",  3, formFunc True  False True  True)
-    -- , ("sfun",   3, formFunc True  True  False False)
-    -- , ("fun",    3, formFunc True  True  False True)
-    -- , ("dsfun",  3, formFunc True  True  True  False)
-    -- , ("dfun",   3, formFunc True  True  True  True)
     ] where
-
         importFunc :: PhageForm
         importFunc tab [v] = eval tab v >>= \(eds, v) -> case stringy v of
             Nothing -> formErr v
