@@ -184,33 +184,3 @@
 (fn putsl ()
 	(def a (apply puts args))
 	(puts "\n") a)
-
-/*
-
-(comp (range 10) x (list 5 6 7) y (* x y))
-(flatmap (\ x (map (\y (* x y)) (list 5 6 7))) (range 10))
-
-*/
-
-(fm comp (_ _ _)
-	(def layers (+ 1 (/ (len rest) 2)))
-	(print layers)
-
-	(fn layer (n lst)
-
-		(print n)
-		(puts "\n")
-		(print lst)
-		(puts "\n")
-
-		// we have reached the target expression
-		(if (= n 0)
-			(car lst)
-			(do (def mapper (if (> n 1) (quote flatmap) (quote map)))
-				(list (quote map)
-					(list (quote \)
-						(cdar lst)
-						(layer (- n 1) (cddar lst)))))))
-
-	(print args)
-	(layer layers args))
