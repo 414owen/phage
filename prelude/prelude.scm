@@ -184,3 +184,7 @@
 (fn putsl ()
 	(def a (apply puts args))
 	(puts "\n") a)
+
+(fn zip (_)
+	(if (any (map (= ()) args)) ()
+		(cons (map car args) (apply zip (map cdr args)))))
