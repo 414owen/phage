@@ -27,7 +27,7 @@ and be 'hackable'.
 Phage has no keywords. If you want, you can redefine `if`, `true`, and `def`.
 This is because `if`, `true`, and `def` are normal bindings.
 
-```scheme
+```
 (def a 1)    // a becomes 1
 (def d def)  // d becomes def
 (d b 4)      // b becomes 4
@@ -44,7 +44,7 @@ Data is immutable. When we redefine variables, everything up to that point will
 maintain the old reference. Here is an example (notice that when we redefine
 `a`, `pr` maintains the old reference):
 
-```scheme
+```
 (def a 1)              // a becomes 1
 (print a)              // prints 1
 (fn pr () (print a))   // defines a function that prints a
@@ -70,7 +70,7 @@ This means that Phage's Abstract Syntax Tree is the same as the textual layout
 of the language. The form `quote` allows you to convert program segments to
 data, and `eval` does the converse.
 
-```scheme
+```
 (def a (quote (+ 1 2 3)))  // (+ 1 2 3)
 a                          // (+ 1 2 3)
 (eval a)                   // 6
@@ -98,7 +98,7 @@ Functions evaluate their arguments, forms don't. Forms take in the AST
 representation of their arguments. The simplest example of this is the `quote`
 function we saw above. It is defined as follows:
 
-```scheme
+```
 (def quote (\\(a) a))
 
 // or
@@ -111,7 +111,7 @@ function we saw above. It is defined as follows:
 Lexically scoped evaluatables use the context present when they were defined.
 Dynamically scoped evaluatables use the context of the caller.
 
-```scheme
+```
 (fn lex () a)
 (dfn dyn () a)
 (def a 3)
@@ -125,7 +125,7 @@ Finally, some evaluatables create their own scope, whereas some use the
 surrounding scope. For the former, variable declarations are local to the body
 of the evaluatable, which is 'normal'.
 
-```scheme
+```
 ((\ () (def a 3)))    // extra brackets used to perform call immediately
 ((s\ () (def b 4)))   // this one doesn't create its own scope
 
@@ -141,7 +141,7 @@ entry to the symbol table. In the prelude (written in Phage), there is a
 function `defs`, which adds multiple entries to the symbol table. It is defined
 and used as follows:
 
-```scheme
+```
 (dsfm defs () (map (apply def) args))
 
 (defs
@@ -168,7 +168,7 @@ $ stack exec phage -- <program>  # run a Phage program
 
 ## Examples
 
-```scheme
+```
 (import "prelude/prelude.scm")
 
 // ---
