@@ -78,9 +78,9 @@
 
 (def ~= (\(a b) (! (^ a b))))
 
-(fn all (l) (apply & l))
+(fn all (l) (apply & (cons true l)))
 
-(fn any (l) (apply | l))
+(fn any (l) (apply | (cons false l)))
 
 (fn choose (_f) (homBinFunc (\(_a _b) (if (call _f _a _b) _a _b))))
 
@@ -188,3 +188,8 @@
 (fn zip (_)
 	(if (any (map (= ()) args)) ()
 		(cons (map car args) (apply zip (map cdr args)))))
+
+(fn transpose (lsts)
+	(apply zip lsts))
+
+(def rotate (pipe transpose rev))
