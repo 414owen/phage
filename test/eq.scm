@@ -281,6 +281,8 @@
 		((intersperse 0 tlst) (list 1 0 2 0 3 0 4))
 		((concat (list tlst tlst tlst)) (list 1 2 3 4 1 2 3 4 1 2 3 4))
 		((intercalate (list 0 5) (list tlst tlst)) (list 1 2 3 4 0 5 1 2 3 4))
+		((push (list 1 2 3) 4) (list 1 2 3 4))
+		((push (list 1 2 3) 4 5 6) (list 1 2 3 4 5 6))
 
 		// drop last
 		((init tlst) (list 1 2 3))
@@ -310,7 +312,6 @@
 		// rotate
 		((rotate (quote ((1 2) (3 4) (5 6))))
 			(quote ((2 4 6) (1 3 5))))
-
 
 		// function wrappers
 		(((const 4) 3 5 6) 4)

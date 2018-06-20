@@ -141,6 +141,9 @@
 (def concat (\ (lsts)
 	(apply append (cons () (cons () lsts)))))
 
+(fn push (lst el)
+	(apply append (cons lst (map list (cons el rest)))))
+
 (def flatmap (pipe map concat))
 
 (def intercalate (pipe intersperse concat))
@@ -193,3 +196,4 @@
 	(apply zip lsts))
 
 (def rotate (pipe transpose rev))
+
