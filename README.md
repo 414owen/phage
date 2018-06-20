@@ -181,12 +181,6 @@ print           // Functions
 true            // Booleans
 
 // ---
-// Variables
-// ---
-
-
-
-// ---
 // Function Application
 // ---
 
