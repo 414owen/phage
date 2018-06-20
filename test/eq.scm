@@ -298,6 +298,11 @@
 		((nest 0 ()) ())
 		((nest 3 4) (list (list (list 4))))
 
+		// zipping
+		((zip (list 1 2 3) (list 4 5 6)) (quote ((1 4) (2 5) (3 6))))
+		((zip (list 1 2 3) (list 4 5 6) (list 7 8 9))
+			(quote ((1 4 7) (2 5 8) (3 6 9))))
+
 
 		// function wrappers
 		(((const 4) 3 5 6) 4)
