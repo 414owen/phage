@@ -11,7 +11,6 @@ import Interpreter
 import Parser
 import System.Console.Haskeline
 import System.Environment
-import System.IO
 import Text.Megaparsec
 import Val
 
@@ -27,21 +26,23 @@ getAst fname src = case parse parseAst fname src of
         _ -> Right ast
 
 run :: Bool -> SymTab -> String -> String -> IO SymTab
-run repl tab fname source = case (repl, getAst fname source) of
+run isRepl tab fname src = case (isRepl, getAst fname src) of
     (_, Left e) -> const tab <$> putStr e
-    (True, Right (x : y : xs)) -> const tab <$> putStrLn
+    (True, Right (_ : _ : _)) -> const tab <$> putStrLn
         "The repl only accepts one expression at a time"
     (_, Right ast) -> runExceptT (lastBlock tab ast)
         >>= \res -> case res of
             Right (eds, val) ->
-                const (newTabM eds tab) <$> (putStr $ if repl
+                const (newTabM eds tab) <$> (putStr $ if isRepl
                     then "\n>> " <> show val <> "\n"
                     else "")
             Left err ->
                 const tab <$> putStrLn ("Phage Error:\n" <> err)
 
+info :: String
 info = "The Phage Programming Language REPL\n0.1 pre-alpha"
 
+prelFile :: String
 prelFile = "prelude/prelude.scm"
 
 repl :: IO ()
@@ -57,11 +58,11 @@ repl =  putStrLn info
             =   getInputLine ((if unicode then "\x03BB:" else ">") <> " ")
             >>= \line -> lift (case line of
                 Nothing -> pure tab
-                Just line -> run True tab "stdin" line)
-            >>= \newTab -> rec newTab unicode
+                Just line' -> run True tab "stdin" line')
+            >>= \newTab' -> rec newTab' unicode
 
 main :: IO ()
 main = getArgs >>= \args -> case args of
-        (b : xs) -> readFile b
+        (b : _) -> readFile b
             >>= run False core b >> pure ()
         _ -> repl

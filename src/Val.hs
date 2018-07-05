@@ -1,5 +1,12 @@
 module Val
     ( PhageVal(..)
+    , FormVal (..)
+    , arity
+    , bound
+    , paramap
+    , form
+    , name
+    , func
     , SymTab
     , SymEdit
     , PRes
@@ -11,13 +18,13 @@ module Val
     ) where
 
 import Err
-import Text.Show.Functions
 import Data.Map hiding (foldl)
 import Data.Tuple.Lazy
 import Data.List hiding (insert)
 import Data.Maybe
 import Data.Monoid
 import Control.Monad.Trans.Except
+import Lens.Micro (Lens', (^.))
 
 type SymEdit = (String, ExceptT PhageErr IO PhageVal)
 type PRes = ([SymEdit], PhageVal)
@@ -30,6 +37,39 @@ type PhageForm =
         -> [PhageVal]
         -> PhageRes
 
+data FormVal = FormVal
+  { fvArity   :: Int
+  , fvBound   :: [PhageVal]
+  , fvParamap :: SymTab -> PhageVal -> PhageRes
+  , fvForm    :: PhageForm
+  , fvName    :: Maybe String
+  , fvFunc    :: Bool
+  }
+
+arity :: Lens' FormVal Int
+arity lens fv@(FormVal {fvArity = val}) =
+  fmap (\newVal -> fv { fvArity = newVal}) (lens val)
+
+bound :: Lens' FormVal [PhageVal]
+bound lens fv@(FormVal {fvBound = val}) =
+  fmap (\newVal -> fv {fvBound = newVal}) (lens val)
+
+paramap :: Lens' FormVal (SymTab -> PhageVal -> PhageRes)
+paramap lens fv@(FormVal {fvParamap = val}) =
+  fmap (\newVal -> fv {fvParamap = newVal}) (lens val)
+
+form :: Lens' FormVal PhageForm
+form lens fv@(FormVal {fvForm = val}) =
+  fmap (\newVal -> fv {fvForm = newVal}) (lens val)
+
+name :: Lens' FormVal (Maybe String)
+name lens fv@(FormVal {fvName = val}) =
+  fmap (\newVal -> fv {fvName = newVal}) (lens val)
+
+func :: Lens' FormVal Bool
+func lens fv@(FormVal {fvFunc = val}) =
+  fmap (\newVal -> fv {fvFunc = newVal}) (lens val)
+
 data PhageVal
     = PNum Integer
     | PChar Char
@@ -38,14 +78,7 @@ data PhageVal
     | PQList [PhageVal]
     | PBool Bool
     -- arity, bound params, bound env, form
-    | PForm
-      { arity   :: Int
-      , bound   :: [PhageVal]
-      , paramap :: SymTab -> PhageVal -> PhageRes
-      , form    :: PhageForm
-      , name    :: Maybe String
-      , func    :: Bool
-      }
+    | PForm FormVal
 
 -- this scope's definitions, to be carried
 type SymTab = Map String (ExceptT PhageErr IO PhageVal)
@@ -61,7 +94,7 @@ spacedShow space els = intercalate space (show <$> els)
 
 instance Eq PhageVal where
     (==) (PNum  a) (PNum  b) = a == b
-    (==) (PChar a) (PChar b) = a == a
+    (==) (PChar a) (PChar b) = a == b
     (==) (PAtom a) (PAtom b) = a == b
     (==) (PList a) (PList b) = a == b
     (==) (PBool a) (PBool b) = a == b
@@ -75,10 +108,10 @@ instance Show PhageVal where
     show (PBool False)    = "false"
     show (PList els)      = "(" <> spacedShow " " els <> ")"
     show (PQList els)      = "{" <> spacedShow " " els <> "}"
-    show (PForm {func = func, arity = arity, bound = params, name = name}) =
-        "<" <> (if func then "func" else "form") <>
-        (fromMaybe "" (fmap (" "<>) name)) <> " | arity: " <>
-        show arity <> ", bound params: " <> (show $ length params) <> ">"
+    show (PForm fv) =
+        "<" <> (if fv ^. func then "func" else "form") <>
+        (fromMaybe "" (fmap (" "<>) $ fv ^. name)) <> " | arity: " <>
+        (show $ fv ^. arity) <> ", bound params: " <> (show . length $ fv ^. bound) <> ">"
 
 typeName :: PhageVal -> String
 typeName (PNum _)        = "num"
@@ -86,4 +119,6 @@ typeName (PAtom _)       = "atom"
 typeName (PList [])      = "nil"
 typeName (PList _)       = "list"
 typeName (PBool _)       = "bool"
-typeName (PForm{})     = "form"
+typeName (PChar _)       = "name"
+typeName (PQList _)      = "qlist"
+typeName (PForm _)       = "form"
