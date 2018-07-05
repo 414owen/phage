@@ -24,6 +24,7 @@ dependencies:
 - containers
 - haskeline
 - megaparsec
+- microlens
 - safe
 - transformers
 - utility-ht
