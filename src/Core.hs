@@ -105,11 +105,7 @@ anyVal =
 comparison :: [(String, PhageVal)]
 comparison =
     (fmap . mapSnd) (binFunc fromNum fromNum PBool)
-        [ ("<", (<))
-        , (">", (>))
-        , ("<=", (<=))
-        , (">=", (>=))
-        ]
+        [ ("<", (<)) ]
 
 arith :: [(String, PhageVal)]
 arith =
