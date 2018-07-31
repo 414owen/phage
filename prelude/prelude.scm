@@ -78,6 +78,14 @@
 
 (def ~= (\(a b) (! (^ a b))))
 
+(def = (\(a b) (! (| (< a b ) (< b a )))))
+
+(def >= (\(a b) (! (< a b))))
+
+(def > (\(a b) (!(| (= a b) (< a b)))))
+
+(def <= (\(a b) (| (= a b) (< a b))))
+
 (fn all (l) (apply & (cons true l)))
 
 (fn any (l) (apply | (cons false l)))
@@ -196,4 +204,3 @@
 	(apply zip lsts))
 
 (def rotate (pipe transpose rev))
-
