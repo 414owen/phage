@@ -95,10 +95,9 @@ flat :: [([String], a)] -> [(String, a)]
 flat = concat . fmap (\(ns, v) -> (, v) <$> ns)
 
 anyVal :: [(String, PhageVal)]
-anyVal =
-    [ ("=", equals)
-    ] where
-        equals = mkFunc 2 (\t v -> pure $ PBool $ func v) where
+anyVal = [ ("=", equals) ]
+    where
+        equals = mkSimFunc 2 (\v -> pure $ PBool $ func v) where
             func [a, b] = a == b
             func (a : b : xs) = a == b && func (b : xs)
 
@@ -155,12 +154,12 @@ lists = concat
 
 metaFuncs :: [(String, PhageVal)]
 metaFuncs =
-    [ ("arity", mkFunc 1 arFunc)
+    [ ("arity", mkSimFunc 1 arFunc)
     , ("apply", defForm {arity=2, form=apFunc, paramap=eval})
     , ("call", defForm {arity=2, form=callFunc, paramap=eval})
     ] where
-        arFunc :: PhageFunc
-        arFunc _ (PForm{arity=ar} : _) = pure $ PNum $ toInteger $ ar
+        arFunc :: SimFunc
+        arFunc (PForm{arity=ar} : _) = pure $ PNum $ toInteger $ ar
 
         apFunc :: PhageForm
         apFunc tab (f@PForm{} : PList a1 : PList a2 : xs) =
@@ -271,17 +270,17 @@ allVals = fmap nameThings $ concat
     , anyVal
     , metaFuncs
     , [ ("print", mkSimFunc 1 prnt)
-      , ("atom", mkFunc 1 atom)
+      , ("atom", mkSimFunc 1 atom)
       , ("str", defForm{arity=1, form=str})
       , ("env", mkFunc 0 env)
       ]
     ]
     where
-        atom :: PhageFunc
-        atom t [v] = case stringy v of
+        atom :: SimFunc
+        atom [v] = case stringy v of
             Nothing -> funcErr [v]
             Just str -> pure $ PAtom str
-        atom t v = funcErr v
+        atom v = funcErr v
 
         str :: PhageForm
         str t [v@(PAtom a)] = pure ([], PList (PChar <$> a))
