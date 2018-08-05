@@ -59,13 +59,27 @@ newTab vs t = newTabM (fmap (mapSnd pure) vs) t
 spacedShow :: String -> [PhageVal] -> String
 spacedShow space els = intercalate space (show <$> els)
 
+typeNum :: PhageVal -> Int
+typeNum (PNum  a)  = 0
+typeNum (PChar a)  = 1
+typeNum (PAtom a)  = 2
+typeNum (PList a)  = 3
+typeNum (PQList a) = 4
+typeNum (PBool a)  = 5
+typeNum (PForm{})  = 6
+
+instance Ord PhageVal where
+    (<=) a b | typeNum a /= typeNum b = typeNum a <= typeNum b
+    (<=) (PNum  a) (PNum  b) = a <= b
+    (<=) (PChar a) (PChar b) = a <= a
+    (<=) (PAtom a) (PAtom b) = a <= b
+    (<=) (PList a) (PList b) = a <= b
+    (<=) (PBool a) (PBool b) = a <= b
+    (<=) _         _         = False
+
 instance Eq PhageVal where
-    (==) (PNum  a) (PNum  b) = a == b
-    (==) (PChar a) (PChar b) = a == a
-    (==) (PAtom a) (PAtom b) = a == b
-    (==) (PList a) (PList b) = a == b
-    (==) (PBool a) (PBool b) = a == b
-    (==) _         _         = False
+    (==) (PForm{}) (PForm{}) = False
+    (==) a b = a <= b && b <= a
 
 instance Show PhageVal where
     show (PNum a)         = show a
@@ -86,4 +100,4 @@ typeName (PAtom _)       = "atom"
 typeName (PList [])      = "nil"
 typeName (PList _)       = "list"
 typeName (PBool _)       = "bool"
-typeName (PForm{})     = "form"
+typeName (PForm{})       = "form"

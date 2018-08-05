@@ -52,7 +52,6 @@ unaryFunc from to fn = mkSimFunc 1 nf
             Just a -> pure $ to $ fn a
             _ -> throwE typeMess
 
-
 -- these functions take the form (a -> b -> c)
 -- but if more arguments are passed in, they are ignored
 binFunc ::
@@ -65,7 +64,6 @@ binFunc fromA fromB toC fn = mkSimFunc 2 nf
     where nf (a : b : xs) = case (fromA a, fromB b) of
             (Just a, Just b) -> return $ toC $ fn a b
             _ -> throwE typeMess
-
 
 fromNum :: (PhageVal -> Maybe Integer)
 fromNum (PNum a) = Just a
@@ -103,7 +101,7 @@ anyVal = [ ("=", equals) ]
 
 comparison :: [(String, PhageVal)]
 comparison =
-    (fmap . mapSnd) (binFunc fromNum fromNum PBool)
+    (fmap . mapSnd) (binFunc Just Just PBool)
         [ ("<", (<))
         , (">", (>))
         , ("<=", (<=))
