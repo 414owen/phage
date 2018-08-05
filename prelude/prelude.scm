@@ -48,6 +48,12 @@
 			(rec (fn (car lst) acc) (cdr lst))))
 		zero lst))
 
+(fn take (n lst)
+	(if (| (= n 0) (= lst ())) ()
+		(cons
+			(car lst)
+			(take (- n 1) (cdr lst)))))
+
 (def rev (fold () cons))
 
 (fn pipe ()

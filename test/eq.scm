@@ -253,6 +253,12 @@
 		((range 10 1 (- 0 3)) (list 10 7 4))
 		((upto 3) (list 1 2 3))
 
+		// taking
+		((take 5 ()) ())
+		((take 5 (list 1 2 3)) (list 1 2 3))
+		((take 1 (list 1 2 3)) (list 1))
+		((take 2 (list 1 2 3)) (list 1 2))
+
 		// reversal
 		((rev (list 1 2 3)) (list 3 2 1))
 
