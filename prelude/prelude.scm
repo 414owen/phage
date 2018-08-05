@@ -135,6 +135,13 @@
 
 (def len (pipe (map (const 1)) sum))
 
+(fn windows (n lst)
+	(if (= lst ()) ()
+		((\(left lst)
+			(if (= left (- 0 1)) ()
+				(cons (take n lst) (rec (- left 1) (cdr lst))))
+		) (- (len lst) n) lst)))
+
 (fn filter (fun lst)
 	(rev (fold () (\(el acc)
 		(if (fun el) (cons el acc) acc)) lst)))

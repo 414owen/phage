@@ -270,6 +270,15 @@
 		((!! 2 (list 1 2 3 4)) 3)
 		((!! 3 (list 1 2 3 4)) 4)
 
+		// windows
+		((windows 2 ()) ())
+		((windows 2 (list 1)) ())
+		((windows 2 (list 1 2)) (quote ((1 2))))
+		((windows 2 (list 1 2 3)) (quote ((1 2) (2 3))))
+		((windows 3 (list 1 2 3)) (quote ((1 2 3))))
+		((windows 1 (list 1 2 3)) (quote ((1) (2) (3))))
+		((windows 2 (list 1 2 3 4 5)) (quote ((1 2) (2 3) (3 4) (4 5))))
+
 		// reversal
 		((rev (list 1 2 3)) (list 3 2 1))
 
