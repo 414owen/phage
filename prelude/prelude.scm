@@ -1,3 +1,9 @@
+(def > (\(a b) (< b a)))
+
+(def >= (\(a b) (! (< a b))))
+
+(def <= (\(a b) (! (> a b))))
+
 (def list (\() args))
 
 (def quote (\\(a) a))
@@ -77,14 +83,6 @@
 (def ^  (\(a b) (& (| a b) (! (& a b)))))
 
 (def ~= (\(a b) (! (^ a b))))
-
-(def = (\(a b) (! (| (< a b ) (< b a )))))
-
-(def >= (\(a b) (! (< a b))))
-
-(def > (\(a b) (!(| (= a b) (< a b)))))
-
-(def <= (\(a b) (| (= a b) (< a b))))
 
 (fn all (l) (apply & (cons true l)))
 
