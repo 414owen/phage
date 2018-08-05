@@ -259,6 +259,17 @@
 		((take 1 (list 1 2 3)) (list 1))
 		((take 2 (list 1 2 3)) (list 1 2))
 
+		// dropping
+		((drop 5 ()) ())
+		((drop 5 (list 1 2 3)) ())
+		((drop 1 (list 1 2 3)) (list 2 3))
+		((drop 2 (list 1 2 3)) (list 3))
+
+		// indexing
+		((!! 0 (list 1 2 3 4)) 1)
+		((!! 2 (list 1 2 3 4)) 3)
+		((!! 3 (list 1 2 3 4)) 4)
+
 		// reversal
 		((rev (list 1 2 3)) (list 3 2 1))
 

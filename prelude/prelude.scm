@@ -38,6 +38,12 @@
 			(rec (cdr l)))))
 	funcs)
 
+(dsfm cond ()
+	(if (= args ()) ()
+		(if (eval (caar args))
+			(eval (cadar args))
+			(apply cond (cdr args)))))
+
 (dsfn flip (_fn) (s\ (_a _b) (call _fn _b _a)))
 
 (fn const (a b) a)
@@ -47,12 +53,6 @@
 		(if (= lst ()) acc
 			(rec (fn (car lst) acc) (cdr lst))))
 		zero lst))
-
-(fn take (n lst)
-	(if (| (= n 0) (= lst ())) ()
-		(cons
-			(car lst)
-			(take (- n 1) (cdr lst)))))
 
 (def rev (fold () cons))
 
@@ -101,6 +101,20 @@
 (def init (dot rev (dot cdr rev)))
 
 (def last (dot car rev))
+
+(fn take (n lst)
+	(if (| (= n 0) (= lst ())) ()
+		(cons
+			(car lst)
+			(take (- n 1) (cdr lst)))))
+
+(fn drop (n lst)
+	(cond
+		((= lst ()) ())
+		((= n 0) lst)
+		(true (drop (- n 1) (cdr lst)))))
+
+(def !! (pipe drop car))
 
 (fn block () (last args))
 
@@ -166,12 +180,6 @@
 			(do (eval (car l)) (rec (cdr l)))))) rest))
 
 (dsfm defs () (map (apply def) args))
-
-(dsfm cond ()
-	(if (= args ()) ()
-		(if (eval (caar args))
-			(eval (cadar args))
-			(apply cond (cdr args)))))
 
 (fm strs (a)
 	(map str args))
