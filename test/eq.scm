@@ -279,6 +279,17 @@
 		((windows 1 (list 1 2 3)) (quote ((1) (2) (3))))
 		((windows 2 (list 1 2 3 4 5)) (quote ((1 2) (2 3) (3 4) (4 5))))
 
+		// chunks
+		((chunks 2 ()) ())
+		((chunks 2 (list 1)) (quote ((1))))
+		((chunks 2 (list 1 2)) (quote ((1 2))))
+		((chunks 2 (list 1 2 3)) (quote ((1 2) (3))))
+		((chunks 1 (list 1 2 3)) (quote ((1) (2) (3))))
+		((chunks 2 (list 1 2 3 4 5)) (quote ((1 2) (3 4) (5))))
+		((chunks 2 (list 1 2 3 4 5 6)) (quote ((1 2) (3 4) (5 6))))
+		((chunks 3 (list 1 2 3 4 5 6)) (quote ((1 2 3) (4 5 6))))
+		((chunks 3 (list 1 2 3 4 5 6 7)) (quote ((1 2 3) (4 5 6) (7))))
+
 		// reversal
 		((rev (list 1 2 3)) (list 3 2 1))
 

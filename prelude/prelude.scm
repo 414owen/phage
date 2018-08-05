@@ -139,8 +139,14 @@
 	(if (= lst ()) ()
 		((\(left lst)
 			(if (= left (- 0 1)) ()
-				(cons (take n lst) (rec (- left 1) (cdr lst))))
-		) (- (len lst) n) lst)))
+				(cons (take n lst)
+					 (rec (- left 1) (cdr lst)))))
+			(- (len lst) n) lst)))
+
+(fn chunks (n lst)
+	(if (= lst ()) ()
+		(cons (take n lst)
+			(chunks n (drop n lst)))))
 
 (fn filter (fun lst)
 	(rev (fold () (\(el acc)
