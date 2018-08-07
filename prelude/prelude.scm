@@ -90,6 +90,12 @@
 
 (fn choose (_f) (homBinFunc (\(_a _b) (if (call _f _a _b) _a _b))))
 
+(fn > (a b) (< b a))
+
+(fn >= (a b) (! (< a b)))
+
+(fn <= (a b) (! (> a b)))
+
 (def min (choose <))
 
 (fn  minl (l) (fold (car l) min l))
@@ -223,4 +229,3 @@
 	(apply zip lsts))
 
 (def rotate (pipe transpose rev))
-
