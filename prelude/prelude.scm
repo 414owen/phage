@@ -78,19 +78,17 @@
 
 (def ~= (\(a b) (! (^ a b))))
 
-(def = (\(a b) (! (| (< a b ) (< b a )))))
-
-(def >= (\(a b) (! (< a b))))
-
-(def > (\(a b) (!(| (= a b) (< a b)))))
-
-(def <= (\(a b) (| (= a b) (< a b))))
-
 (fn all (l) (apply & (cons true l)))
 
 (fn any (l) (apply | (cons false l)))
 
 (fn choose (_f) (homBinFunc (\(_a _b) (if (call _f _a _b) _a _b))))
+
+(fn > (a b) (< b a))
+
+(fn >= (a b) (! (< a b)))
+
+(fn <= (a b) (! (> a b)))
 
 (def min (choose <))
 
