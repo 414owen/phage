@@ -253,6 +253,43 @@
 		((range 10 1 (- 0 3)) (list 10 7 4))
 		((upto 3) (list 1 2 3))
 
+		// taking
+		((take 5 ()) ())
+		((take 5 (list 1 2 3)) (list 1 2 3))
+		((take 1 (list 1 2 3)) (list 1))
+		((take 2 (list 1 2 3)) (list 1 2))
+
+		// dropping
+		((drop 5 ()) ())
+		((drop 5 (list 1 2 3)) ())
+		((drop 1 (list 1 2 3)) (list 2 3))
+		((drop 2 (list 1 2 3)) (list 3))
+
+		// indexing
+		((!! 0 (list 1 2 3 4)) 1)
+		((!! 2 (list 1 2 3 4)) 3)
+		((!! 3 (list 1 2 3 4)) 4)
+
+		// windows
+		((windows 2 ()) ())
+		((windows 2 (list 1)) ())
+		((windows 2 (list 1 2)) (quote ((1 2))))
+		((windows 2 (list 1 2 3)) (quote ((1 2) (2 3))))
+		((windows 3 (list 1 2 3)) (quote ((1 2 3))))
+		((windows 1 (list 1 2 3)) (quote ((1) (2) (3))))
+		((windows 2 (list 1 2 3 4 5)) (quote ((1 2) (2 3) (3 4) (4 5))))
+
+		// chunks
+		((chunks 2 ()) ())
+		((chunks 2 (list 1)) (quote ((1))))
+		((chunks 2 (list 1 2)) (quote ((1 2))))
+		((chunks 2 (list 1 2 3)) (quote ((1 2) (3))))
+		((chunks 1 (list 1 2 3)) (quote ((1) (2) (3))))
+		((chunks 2 (list 1 2 3 4 5)) (quote ((1 2) (3 4) (5))))
+		((chunks 2 (list 1 2 3 4 5 6)) (quote ((1 2) (3 4) (5 6))))
+		((chunks 3 (list 1 2 3 4 5 6)) (quote ((1 2 3) (4 5 6))))
+		((chunks 3 (list 1 2 3 4 5 6 7)) (quote ((1 2 3) (4 5 6) (7))))
+
 		// reversal
 		((rev (list 1 2 3)) (list 3 2 1))
 

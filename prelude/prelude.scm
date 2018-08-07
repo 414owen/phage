@@ -38,6 +38,12 @@
 			(rec (cdr l)))))
 	funcs)
 
+(dsfm cond ()
+	(if (= args ()) ()
+		(if (eval (caar args))
+			(eval (cadar args))
+			(apply cond (cdr args)))))
+
 (dsfn flip (_fn) (s\ (_a _b) (call _fn _b _a)))
 
 (fn const (a b) a)
@@ -102,6 +108,20 @@
 
 (def last (dot car rev))
 
+(fn take (n lst)
+	(if (| (= n 0) (= lst ())) ()
+		(cons
+			(car lst)
+			(take (- n 1) (cdr lst)))))
+
+(fn drop (n lst)
+	(cond
+		((= lst ()) ())
+		((= n 0) lst)
+		(true (drop (- n 1) (cdr lst)))))
+
+(def !! (pipe drop car))
+
 (fn block () (last args))
 
 (sfn map (fun lst)
@@ -120,6 +140,19 @@
 (def prod (fold 1 *))
 
 (def len (pipe (map (const 1)) sum))
+
+(fn windows (n lst)
+	(if (= lst ()) ()
+		((\(left lst)
+			(if (= left (- 0 1)) ()
+				(cons (take n lst)
+					 (rec (- left 1) (cdr lst)))))
+			(- (len lst) n) lst)))
+
+(fn chunks (n lst)
+	(if (= lst ()) ()
+		(cons (take n lst)
+			(chunks n (drop n lst)))))
 
 (fn filter (fun lst)
 	(rev (fold () (\(el acc)
@@ -166,12 +199,6 @@
 			(do (eval (car l)) (rec (cdr l)))))) rest))
 
 (dsfm defs () (map (apply def) args))
-
-(dsfm cond ()
-	(if (= args ()) ()
-		(if (eval (caar args))
-			(eval (cadar args))
-			(apply cond (cdr args)))))
 
 (fm strs (a)
 	(map str args))
