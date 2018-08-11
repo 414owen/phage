@@ -339,8 +339,17 @@
 
 		// zipping
 		((zip (list 1 2 3) (list 4 5 6)) (quote ((1 4) (2 5) (3 6))))
+		((zip (list 2 3) (list 4 5 6)) (quote ((2 4) (3 5))))
+		((zip (list 1 2 3) (list 4 5)) (quote ((1 4) (2 5))))
 		((zip (list 1 2 3) (list 4 5 6) (list 7 8 9))
 			(quote ((1 4 7) (2 5 8) (3 6 9))))
+		((zip (list 1 2 3) (list 4 6) (list 7 8 9))
+			(quote ((1 4 7) (2 6 8))))
+
+    ((zipWith + (list 1 2 3) (list 4 5 6)) (list 5 7 9))
+    ((zipWith + (list 1 2 3) (list 4 5)) (list 5 7))
+    ((zipWith + (list 1 2 3) (list 4 5 6) (list 7 8 9)) (list 12 15 18))
+    ((zipWith + (list 1 2 3) (list 4 5 6)) (list 5 7 9))
 
 		// transpose
 		((transpose (quote ((1 2) (3 4) (5 6))))
