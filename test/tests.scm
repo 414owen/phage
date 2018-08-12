@@ -1,5 +1,4 @@
 (import "prelude/prelude.scm")
-(import "stdlib/comp.scm")
 
 (def tlst (list 1 2 3 4))
 
