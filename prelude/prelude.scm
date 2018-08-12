@@ -259,3 +259,10 @@ examples:
               (apply layer (cddr _args)))) (car rest))
           (eval _exp)))))
   (apply layer args))
+
+(def list? (sameType ""))
+(def num? (sameType 0))
+(def char? (sameType (car "hi")))
+(def atom? (sameType (quote hi)))
+(def bool? (sameType true))
+(def form? (sameType car))
