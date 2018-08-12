@@ -7,6 +7,7 @@ module Val
     , newTab
     , newTabM
     , typeName
+    , typeNum
     , PhageForm
     ) where
 

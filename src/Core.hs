@@ -93,11 +93,19 @@ flat :: [([String], a)] -> [(String, a)]
 flat = concat . fmap (\(ns, v) -> (, v) <$> ns)
 
 anyVal :: [(String, PhageVal)]
-anyVal = [ ("=", equals) ]
-    where
-        equals = mkSimFunc 2 (\v -> pure $ PBool $ func v) where
-            func [a, b] = a == b
-            func (a : b : xs) = a == b && func (b : xs)
+anyVal =
+  [ ("=", equals)
+  , ("sameType", sameType)
+  ] where
+
+    equals = mkSimFunc 2 (\v -> pure $ PBool $ eq v)
+
+    eq [a, b] = a == b
+    eq (a : b : xs) = a == b && eq (b : xs)
+
+    sameType = mkSimFunc 2 (\v -> pure $ PBool $ st v)
+
+    st (x : xs) = all (\a -> typeNum a == typeNum x) xs
 
 comparison :: [(String, PhageVal)]
 comparison =
