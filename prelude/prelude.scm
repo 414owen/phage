@@ -266,3 +266,6 @@ examples:
 (def atom? (sameType (quote hi)))
 (def bool? (sameType true))
 (def form? (sameType car))
+
+(fn even? (n) (= 0 (% n 2)))
+(def odd? (pipe even? !))
