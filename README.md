@@ -68,7 +68,7 @@ them), and ignore bindings defined below, and in scopes more nested than them.
 As is common with languages that have lots of brackets, Phage is homoiconic.
 This means that Phage's Abstract Syntax Tree is the same as the textual layout
 of the language. The form `quote` allows you to convert program segments to
-data, and `eval` does the converse.
+data, and `eval` does the inverse.
 
 ```
 (def a (quote (+ 1 2 3)))  // (+ 1 2 3)
