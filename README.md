@@ -145,9 +145,9 @@ and used as follows:
 (dsfm defs () (map (apply def) args))
 
 (defs
-	(a 1)
-	(b (+ 1 1))
-	(c 3))
+  (a 1)
+  (b (+ 1 1))
+  (c 3))
 
 a     // 1
 b     // 2
