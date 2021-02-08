@@ -1,6 +1,6 @@
 <div align="center">
 	<p>
-	   <img src="http://owenowen.netsoc.ie/res/phage.svg" height="150">
+	   <img src="https://raw.githubusercontent.com/414owen/phage/master/icon.svg" height="150">
 	</p>
 	<h1>The Phage Programming Language</h1>
 	<a href="https://travis-ci.org/414owen/Phage">
