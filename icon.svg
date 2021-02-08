@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="8 0 84 114" stroke="#000" fill="#000" stroke-linecap="round" stroke-width="0">
+  <g fill="none" id="legs" stroke-width="2">
+    <path d="M44,86L36,72L24,112">
+      <animate dur="2s" repeatCount="indefinite" attributeName="d" values="M44,86L36,72L24,112;M44,88L34,76L24,112;M44,86L36,72L24,112"/>
+    </path>
+    <path d="M44,86L31,72L17,112">
+      <animate dur="2s" repeatCount="indefinite" attributeName="d" values="M44,86L31,72L17,112;M44,88L29,76L17,112;M44,86L31,72L17,112"/>
+    </path>
+    <path d="M44,86L26,72L10,112">
+      <animate dur="2s" repeatCount="indefinite" attributeName="d" values="M44,86L26,72L10,112;M44,88L24,76L10,112;M44,86L26,72L10,112"/>
+    </path>
+  </g>
+  <use xlink:href="#legs" transform="translate(100 0) scale(-1 1)"/>
+  <g>
+    <animateTransform dur="2s" repeatCount="indefinite" attributeName="transform" type="translate" values="0 0;0 2;0 0"/>
+    <line x1="50" y1="25" x2="50" y2="91" stroke-width="4"/>
+    <g transform="translate(0 86)">
+      <path d="M28.3494,-48.5l0,-25l21.6506,-12.5l21.6506,12.5l0,25l-21.6506,12.5"/>
+      <rect height="10" rx="5" width="22" x="39" y="-5"/>
+      <rect height="32" rx="4" width="12" x="44" y="-32"/>
+    </g>
+  </g>
+</svg>
